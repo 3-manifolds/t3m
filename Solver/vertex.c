@@ -6,7 +6,6 @@
 #define PRIME ((unsigned int)0x7fffffff)
 
 static void print_vertices(vertex_stack_t *stack, int dimension);
-static void print_vertex(vertex_t *V, int dimension, char *note);
 static PyObject *build_vertex_list(vertex_stack_t *stack, int dimension);
 static void no_memory(void);
 static void add_block(reservoir_t *reservoir);
@@ -340,7 +339,8 @@ filter_list_t *embedded_filter(int tets){
   // NOTE: this assumes that calloc will give us 8-byte aligned memory.
   // gcc says it will do that.
   // http://www.gnu.org/manual/glibc-2.2.3/html_node/libc_30.html
-  result = (filter_list_t *)calloc(1,sizeof(filter_list_t)+size*sizeof(support_t));
+  //  result = (filter_list_t *)calloc(1,sizeof(filter_list_t)+size*sizeof(support_t));
+  result = (filter_list_t *)calloc(1,8+sizeof(filter_list_t)+size*sizeof(support_t));
   if (result == NULL) no_memory();
 
   result->size = size;
@@ -419,7 +419,7 @@ PyObject *find_vertices(matrix_t *matrix, filter_list_t *filter_list){
 	  }
 	  else ++interior;
 	}
-	else ++filtered; 
+	else  ++filtered;
       }
     }
 

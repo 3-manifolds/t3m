@@ -162,7 +162,7 @@ int filter(vertex_t *v, filter_list_t *filter_list){
         pandn   %%mm3, %%mm5       ;
         por     %%mm5, %%mm4       ;
         movd    %%mm4, %%eax       ;
-        punpckldq %%mm5, %%mm4     ;
+        punpckhdq %%mm5, %%mm4     ;
         movd    %%mm4, %%esi       ;
         orl     %%esi, %%eax       ;
         test    %%eax, %%eax       ;
