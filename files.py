@@ -10,7 +10,7 @@ import os, sys, re
 #      2    5    1   34 
 #   3120 0321 0132 0132
 
-def Read_SnapPea_file(file_name):
+def read_SnapPea_file(file_name):
     data = open(file_name).read()
     count = 0
 
@@ -33,8 +33,6 @@ def Read_SnapPea_file(file_name):
                 perms.append(perm)
             fake_tets.append( (neighbors, perms) )
             curr_poss = m.end(8)
-        
-
     return Mcomplex_from_data(fake_tets)
 
 #------------End function SnapPea to Mcomplex--------------------
@@ -54,7 +52,6 @@ def Mcomplex_from_data(fake_tets):
         neighbors, perms = fake_tets[i]
         for k in range(4):
             tets[i].attach(TwoSubsimplices[k], tets[neighbors[k]], perms[k])
-
     return Mcomplex(tets)
 
 #-----------End function Mcomplex_from_data--------------------
@@ -63,7 +60,7 @@ def Mcomplex_from_data(fake_tets):
 # ASSUMES THAT THE MANIFOLD IS ORIENTABLE, CLOSED, AND THAT THE LINK OF
 # ANY VERTEX HAS GENUS AT MOST ONE.
 
-def Write_SnapPea_file(mcomplex, file_name ):
+def write_SnapPea_file(mcomplex, file_name ):
     out = open(file_name, "w").write
     out("% Triangulation\n\n" + file_name + "\nnot_attempted\noriented_manifold\nCS_unknown\n\n")
     # Make sure everything is in order
@@ -130,7 +127,7 @@ def read_edge(edge):
 #  function takes two successive edges in the link and glues the
 #  corresponding tetrahedra together.
 
-def Read_GEO_file(file_name):
+def read_geo_file(file_name):
     data = open(file_name).readlines()
     num_tet = len(data) - 2
     tets = []
@@ -150,7 +147,7 @@ def Read_GEO_file(file_name):
 
 #---------Code to go from Mcomplex to Geo---------------------
 
-def Write_GEO_file(mcomplex, file_name):
+def write_geo_file(mcomplex, file_name):
     
     out = open(file_name, "w").write
     out("k\n")
