@@ -228,7 +228,7 @@ class OneCuspedManifold(t3m.Mcomplex):
         self.build_angle_matrix()
         coeff_list = find_Xrays(self.AngleMatrix.rows,
                                 self.AngleMatrix.columns,
-                                self.AngleMatrix.matrix, 0)
+                                self.AngleMatrix.matrix, modp=0, filtering=0)
         self.AngleStructures = [AngleStructure(coeff_vector) for coeff_vector in coeff_list]
 
     def angle_structure_info(self):
