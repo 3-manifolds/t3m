@@ -1,4 +1,4 @@
-import t3m, SnapPea
+import t3m, SnapPea, re
 from FXrays import find_Xrays
 from boundary_slopes import find_distinct_triangulations
 
@@ -155,4 +155,125 @@ def save_semifiber(census):
         else:
             f.write(M.get_name() + "\tunknown\n")
         f.flush()
-                            
+
+def save_taut_data(census, max_tet = 13):
+    f = open("taut_data", "a")
+    for M in census:
+        if M.get_num_tetrahedra() < max_tet:
+            N = Mcomplex_with_taut(M)
+            N.find_taut_structures()
+
+            def taut_to_num(T):
+                if T.CarriesSemifiber:
+                    return 2
+                elif T.Carries:
+                    return 1
+                return 0
+
+            f.write(N.Name + "\t%d\t%d\t%f" %
+                    (M.get_num_tetrahedra(), M.get_num_cusps(), M.volume())
+                    + "\t" + repr(map(taut_to_num, N.TautStructures))+"\n")
+            f.flush()
+
+def get_taut_data(name_pattern=None, tet_range = None):
+    f = open("taut_data")
+    ans = []
+    for line in f.xreadlines():
+        line = line.replace("\t\t", "\t")
+        name, tet, cusps, vol, tauts = line.split("\t")
+        tet, cusps, vol, tauts = int(tet), int(cusps), float(vol), eval(tauts)
+        if ( (name_pattern == None or name_pattern.match(name))  and
+             (tet_range == None or tet in tet_range) ):
+            ans.append( (name, tet, cusps, vol, tauts))
+
+    return ans
+
+def analyze_data(data):
+    semi = 0
+    all_tauts = []
+    taut_lens = []
+    for name, tet, cusps, vol, tauts in data:
+        all_tauts += tauts
+        taut_lens.append(len(tauts))
+        if max(tauts) == 2:
+            semi += 1
+
+    len_dist = [ taut_lens.count(i) for i in range(max(taut_lens) + 1)]
+    t = len(all_tauts)*1.0
+    n = len(data) *1.0
+    taut_carry = (all_tauts.count(1) + all_tauts.count(2))/t
+    taut_semi = all_tauts.count(2)/t
+
+    #what if everything was random:
+    fake_semi = 0
+    for i in range(len(len_dist)):
+        fake_semi += len_dist[i] * ( 1 - (1 - taut_semi)**i)
+        
+    
+    return (len(all_tauts), taut_carry, taut_semi, semi/n, fake_semi/n, len_dist)
+
+
+
+def valences(M):
+    val = [len(E.Corners) for E in M.Edges]
+    val.sort()
+    return val
+
+def silly(data):
+    for name, tet, cusps, vol, tauts in data:
+        if max(tauts) < 2:
+            M = SnapPea.get_manifold(name)
+            N = Mcomplex_with_taut(M)
+            if min(valences(N)) > 4:
+                print name
+
+def my_sum(L):
+    ans = 0
+    for l in L:
+        ans += l
+    return ans
+
+def edge_defect(eqn):
+    return abs(my_sum(eqn))
+
+def defect(T):
+    eqns = T.WeightEquations.to_list()
+    return my_sum( map(edge_defect, eqns))
+    
+def test_defect_idea(census):
+    raw_data = []
+    for M in census:
+        N = Mcomplex_with_taut(M)
+        N.find_taut_structures()
+        for T in N.TautStructures:
+            raw_data.append( (defect(T), T.CarriesSemifiber) )
+
+    final_data = []
+    for i in range(max([d[0] for d in raw_data]) + 1):
+        fib = raw_data.count( (i, 1) )
+        non = raw_data.count( (i,0) )
+        if fib + non > 0:
+            final_data.append( (i, fib, non, fib/(fib + non + 0.0)))
+        else:
+            final_data.append( (i, 0, 0, None))
+
+    return final_data
+        
+            
+    
+def compare_with_old():
+    f = open("taut_out")
+    g = open("/Users/dunfield/work/work/fibered/SnapPea/fibering_Lackenby")
+    old_data = g.read()
+    for line in f.xreadlines():
+        name, newfib = line.split()[:2]
+        if old_data.find(name) >= 0:
+            oldfib = "semifibers"
+        else:
+            oldfib = "unknown"
+
+        if newfib != oldfib:
+            print name, newfib, oldfib, SnapPea.get_manifold(name).homology()
+
+    
+        
