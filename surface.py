@@ -106,7 +106,7 @@ class Surface:
 
     # Subtract off as many vertex links as possible.
     for vertex in self.Manifold.Vertices:
-      m = min(multiply(vertex.IncidenceVector, x ))
+      m = min(compress(vertex.IncidenceVector, x))
       x -= m*vertex.IncidenceVector 
 
     for i in range(len(self.Manifold)):
