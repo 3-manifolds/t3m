@@ -43,12 +43,13 @@ class manifold_list:
         manifold = self.census[i]
         return Mcomplex_from_data(manifold)    
 
-closed_orientable = manifold_list( SnapPea.ClosedCensus())
-five_tet_cusped = manifold_list( SnapPea.CuspedCensus())
-six_tet_cusped_orientable = manifold_list( SnapPea.CuspedCensus(6)) 
-six_tet_cusped_nonorientable = manifold_list( SnapPea.CuspedCensus(6,'n')) 
-seven_tet_cusped_orientable = manifold_list( SnapPea.CuspedCensus(7)) 
-seven_tet_cusped_nonorientable = manifold_list( SnapPea.CuspedCensus(7,'n')) 
+closed_orientable = manifold_list( SnapPea.ClosedOrientable)
+closed_nonorientable = manifold_list( SnapPea.ClosedNonorientable)
+five_tet_cusped = manifold_list( SnapPea.Cusped5tet)
+six_tet_cusped_orientable = manifold_list( SnapPea.Cusped6tetOrientable) 
+six_tet_cusped_nonorientable = manifold_list( SnapPea.Cusped6tetNonorientable) 
+seven_tet_cusped_orientable = manifold_list( SnapPea.Cusped7tetOrientable) 
+seven_tet_cusped_nonorientable = manifold_list( SnapPea.Cusped7tetOrientable) 
 alternating_knot_ext = manifold_list(SnapPea.AlternatingKnotExteriors)
 nonalternating_knot_ext = manifold_list(SnapPea.NonalternatingKnotExteriors)
 
@@ -57,6 +58,7 @@ def get_mcomplex(name):
 
 
 __all__ = ('closed_orientable',
+           'closed_nonorientable',
            'five_tet_cusped',
            'six_tet_cusped_orientable',
            'six_tet_cusped_nonorientable',
