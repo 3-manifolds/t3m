@@ -13,7 +13,7 @@ from mcomplex import *
 
 def Mcomplex_from_data(SnapPeaTriangulation):
     M = SnapPeaTriangulation
-    fill = 1 in [M.get_cusp_is_fillable(i) for i in range(M.get_num_cusps())]
+    fill = 1 in [M.cusp_is_fillable(i) for i in range(M.get_num_cusps())]
     gluing_data = SnapPeaTriangulation.get_gluing_data(fill)
     num_tets = len(gluing_data)
     tets = map(lambda x: Tetrahedron(), range(num_tets))
