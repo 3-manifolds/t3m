@@ -71,18 +71,16 @@ class Surface:
   Count = 0
 
   def __init__(self, manifold, quadvector):
-    Q = not_equal(quadvector, 0).resize((len(manifold),3))
-    A = array(quadvector).resize((len(manifold),3))
-    Surface.Count = Surface.Count + 1
-    self.Manifold = manifold
+    self.Size = len(manifold)
+    Q = not_equal(quadvector, 0).resize((self.Size,3))
+    A = array(quadvector).resize((self.Size,3))
+    Surface.Count += 1
     self.Coefficients = matrixmultiply(A,WeightVector)
     self.Quadtypes = matrixmultiply(Q,TypeVector)
     
   def __del__(self):
-    Surface.count = Surface.Count - 1
-
-  def erase(self):
-    self.Manifold = None
+#    print "Destroying Surface"
+    Surface.Count -= 1
 
   def type(self):
     if min(self.Coefficients) < 0:
@@ -97,15 +95,14 @@ class Surface:
 
   def add_shifts(self):
     shifts = []
-    for i in range(len(self.Manifold)):
+    for i in range(self.Size):
         shifts += [ self.Coefficients[i] * w for w in QuadShifts[self.Quadtypes[i]]]
     self.Shifts = shifts
 
   def info(self, out = sys.stdout):
-    M = self.Manifold
     if self.type() == "normal":
       out.write("Normal surface\n")
-    for i in range(len(M)):
+    for i in range(self.Size):
       quad_weight = self.Coefficients[i]
       if quad_weight == -1:
         weight = "  Quad Type Q%d3, weight: octagon" % self.Quadtypes[i]
@@ -120,10 +117,15 @@ class ClosedSurface(Surface):
 
   def __init__(self, manifold, quadvector):
     Surface.__init__(self, manifold, quadvector)
-    self.Weights = zeros( 7*len(manifold) )
-    self.build_weights()
-    
-  def build_weights(self):
+    self.build_weights(manifold)
+    self.build_bounding_info(manifold)
+    self.find_euler_characteristic(manifold)
+    ClosedSurface.Count += 1
+
+  def __del__(self):
+    ClosedSurface.count -= 1
+
+  def build_weights(self, manifold):
 
     """Use self.QuadWeights self.QuadTypes vector to construct
     self.Weights and self.EdgeWeights.  The vector self.Weights has size
@@ -158,16 +160,17 @@ class ClosedSurface(Surface):
     # the incidence matrix for edges meeting quads and triangles times the
     # vector self.Weights.
     
+    self.Weights = zeros( 7*self.Size )
     eqns = []
     constants = []
     edge_matrix = []
-    for edge in self.Manifold.Edges:
+    for edge in manifold.Edges:
 
       # Build the row of the incidence matrix that records which quads
       # and triangles meet this edge.  We can use any tetrahedron that
       # meets this edge to compute the row.
       
-      edge_row = zeros( 7*len(self.Manifold) )
+      edge_row = zeros( 7*len(manifold) )
       corner = edge.Corners[0]
       j = corner.Tetrahedron.Index
       edge_row[7*j:7*j+4] = MeetsTri[corner.Subsimplex]
@@ -182,7 +185,7 @@ class ClosedSurface(Surface):
       for i in range(len(edge.Corners) - 1):
         j = edge.Corners[i].Tetrahedron.Index
         k = edge.Corners[i+1].Tetrahedron.Index
-        row = zeros(4*len(self.Manifold))
+        row = zeros(4*len(manifold))
         row[4*j:4*j+4] = MeetsTri[edge.Corners[i].Subsimplex]
         row[4*k:4*k+4] -= MeetsTri[edge.Corners[i+1].Subsimplex]
         eqns.append(row)
@@ -199,7 +202,7 @@ class ClosedSurface(Surface):
             c -= self.Coefficients[j]
         constants.append(c)
       # Now add the extra equations to kill off the vertex links.
-      for vertex in self.Manifold.Vertices:
+      for vertex in manifold.Vertices:
         eqns.append(vertex.IncidenceVector)
         constants.append(0)
 
@@ -212,11 +215,11 @@ class ClosedSurface(Surface):
     x = solve_linear_equations(U,v)
 
     # Subtract off as many vertex links as possible.
-    for vertex in self.Manifold.Vertices:
+    for vertex in manifold.Vertices:
       m = min(compress(vertex.IncidenceVector, x))
       x -= m*vertex.IncidenceVector 
 
-    for i in range(len(self.Manifold)):
+    for i in range(len(manifold)):
       for j in range(4):
         # A hack, since we are not doing the linear algebra over Q.
         if round ( x[4*i+j] ) - x[4*i+j] > .0000001:
@@ -235,18 +238,18 @@ class ClosedSurface(Surface):
     self.EdgeWeights = matrixmultiply(array(edge_matrix),self.Weights)
 
 
-  def euler_characteristic(self):
+  def find_euler_characteristic(self, manifold):
     # An EdgeValence is the number of tetrahedra that meet the edge.
     # The number of 2-simplices that meet the edge is larger by 1 in
     # the case of a boundary edge.
-    valences = array(self.Manifold.EdgeValences)
-    for edge in self.Manifold.Edges:
+    valences = array(manifold.EdgeValences)
+    for edge in manifold.Edges:
       if edge.IntOrBdry == 'bdry':
         valences[edge.Index] += 1
     V = sum(self.EdgeWeights)
     E = dot(self.EdgeWeights, valences)/2
     F = sum(abs(self.Weights))
-    return V - E + F
+    self.EulerCharacteristic = V - E + F
 
   # takes either a triangle given as the corresponding vertex
   # or a quad given as an edge disjoint from it.
@@ -265,14 +268,14 @@ class ClosedSurface(Surface):
   # of any dimension disjoint from it.  (For a normal surface, the boundary
   # of a regular nbhd of this subcomplex is always normal.)   It's not
   # hard to see that a normal surface bounds a subcomplex iff all edge weights
-  # are 0 or 2.  The function bounds_subcomplex returns the tuple
+  # are 0 or 2.  The function build_bounding_info sets self.BoundingInfo to:
   #
   #  (bounds subcomplex, double bounds subcomplex, thick_or_thin)
   #
   # where thick_or_thin describes whether there is a tetrahedron contained
   # in the subcomplex bounded by the surface or its double.
 
-  def bounds_subcomplex(self):
+  def build_bounding_info(self, manifold):
     if self.type() != "normal":
       return (0, 0, None)
     
@@ -289,9 +292,7 @@ class ClosedSurface(Surface):
 
     if bounds_subcomplex or double_bounds_subcomplex:
       thick_or_thin = "thin"
-      M = self.Manifold
-      for i in range(len(M)):
-        tet = M.Tetrahedra[i]
+      for tet in manifold.Tetrahedra:
         inside = 1
         for e in OneSubsimplices:
           w = self.get_edge_weight(tet.Class[e])
@@ -306,7 +307,7 @@ class ClosedSurface(Surface):
     else:
       thick_or_thin = None
 
-    return (bounds_subcomplex, double_bounds_subcomplex, thick_or_thin)
+    self.BoundingInfo = (bounds_subcomplex, double_bounds_subcomplex, thick_or_thin)
 
 ###### It is not a torus unless the edge is a loop!
   # A surface is an edge linking torus iff all edge weights are 2 except one which
@@ -325,19 +326,18 @@ class ClosedSurface(Surface):
       elif w != 2:
         return (0, None)
       
-    return (1,  self.Manifold.Edges[zero_index])
+    return (1,  zero_index)
         
-  def info(self, out = sys.stdout):
-    M = self.Manifold
+  def info(self, manifold, out = sys.stdout):
     if self.type() == "normal":
       # check if really boring:
       q, e = self.is_edge_linking_torus()
       if q:
         out.write("Normal surface #%d is thin linking torus of edge %s\n"
-                   %(M.NormalSurfaces.index(self), e))
+                  %(manifold.NormalSurfaces.index(self), manifold.Edges[e]))
         return
       out.write("Normal surface #%d of Euler characteristic %d\n"
-                %(M.NormalSurfaces.index(self), self.euler_characteristic()))
+                %(manifold.NormalSurfaces.index(self), self.EulerCharacteristic))
       # addional message about bounding subcomplex
       b, d, t = self.bounds_subcomplex()
       if b == 1:
@@ -348,10 +348,10 @@ class ClosedSurface(Surface):
         out.write("  doesn't bound subcomplex\n")
     else:
       out.write("Almost-normal surface #%d of Euler characteristic %d\n"
-               % (M.AlmostNormalSurfaces.index(self), 
-                  self.euler_characteristic()))
+               % (manifold.AlmostNormalSurfaces.index(self), 
+                  self.EulerCharacteristic))
     out.write('\n') 
-    for i in range(len(self.Manifold)):
+    for i in range(self.Size):
       quad_weight = self.Coefficients[i]
       if quad_weight == -1:
         weight = "  Quad Type Q%d3, weight: octagon" % self.Quadtypes[i]
@@ -360,7 +360,7 @@ class ClosedSurface(Surface):
       else:
         weight = "No quads"
       out.write("  In tetrahedron %s :  %s\n" %
-                      (self.Manifold.Tetrahedra[i], weight))
+                      (manifold.Tetrahedra[i], weight))
       out.write("\tTri weights V0: %d V1: %d V2 : %d V3 : %d\n" 
                 % (self.get_weight(i, V0), 
                    self.get_weight(i, V1), 
@@ -370,7 +370,7 @@ class ClosedSurface(Surface):
 
     for i in range(len(self.EdgeWeights)):
       out.write("  Edge %s has weight %d\n" 
-                  % (self.Manifold.Edges[i], self.EdgeWeights[i]))
+                  % (manifold.Edges[i], self.EdgeWeights[i]))
 
 #-----------------end class ClosedSurface---------------------------------------
 
@@ -395,10 +395,9 @@ class SpunSurface(Surface):
     surface.BoundarySlope = (-dot_product(surface.Shifts, cusp_equations[1]),
                              dot_product(surface.Shifts, cusp_equations[0]) )
 
-  def info(self, out = sys.stdout):
-    M = self.Manifold
+  def info(self, manifold, out = sys.stdout):
     out.write("SpunSurface: Slope %s;  Incompressible %s\n" % (self.BoundarySlope, self.Incompressible))
-    for i in range(len(M)):
+    for i in range(self.Size):
       quad_weight = self.Coefficients[i]
       if quad_weight > 0:
         weight = "  Tet %d: Quad Type  Q%d3, weight %d" % (i, self.Quadtypes[i], quad_weight)
@@ -416,17 +415,17 @@ class ClosedSurfaceInCusped(ClosedSurface):
     self.BoundarySlope = None
   
 
-  def info(self, out = sys.stdout):
-    M = self.Manifold
-    out.write("ClosedSurfaceInCusped #%d:  Euler %d;  Incompressible %s\n" % (M.ClosedSurfaces.index(self), self.euler_characteristic(), self.Incompressible))
+  def info(self, manifold, out = sys.stdout):
+    out.write("ClosedSurfaceInCusped #%d:  Euler %d;  Incompressible %s\n" %
+              (manifold.ClosedSurfaces.index(self), self.EulerCharacteristic, self.Incompressible))
     # check if really boring:
     q, e = self.is_edge_linking_torus()
     if q:
-      out.write("    is thin linking surface of edge %s\n" % e)
+      out.write("    is thin linking surface of edge %s\n" % manifold.Edges[e])
       return
 
     # addional message about bounding subcomplex
-    b, d, t = self.bounds_subcomplex()
+    b, d, t = self.BoundingInfo
     if b == 1:
       out.write("  Bounds %s subcomplex\n"  % t)
     elif d == 1:
@@ -434,7 +433,7 @@ class ClosedSurfaceInCusped(ClosedSurface):
     else:
       out.write("  Doesn't bound subcomplex\n")
 
-    for i in range(len(self.Manifold)):
+    for i in range(self.Size):
       quad_weight = self.Coefficients[i]
       if quad_weight > 0:
         weight = "  Quad Type  Q%d3, weight %d" % (self.Quadtypes[i], quad_weight)
@@ -442,7 +441,7 @@ class ClosedSurfaceInCusped(ClosedSurface):
         weight = "No quads"
 
       out.write("  In tet %s :  %s\n" %
-                      (self.Manifold.Tetrahedra[i], weight))
+                      (manifold.Tetrahedra[i], weight))
       out.write("\tTri weights V0: %d V1: %d V2 : %d V3 : %d\n" 
                 % (self.get_weight(i, V0), 
                    self.get_weight(i, V1), 
@@ -452,5 +451,6 @@ class ClosedSurfaceInCusped(ClosedSurface):
 
     for i in range(len(self.EdgeWeights)):
       out.write("  Edge %s has weight %d\n" 
-                  % (self.Manifold.Edges[i], self.EdgeWeights[i]))
+                  % (manifold.Edges[i], self.EdgeWeights[i]))
+
 

@@ -94,11 +94,13 @@ class Mcomplex:
      self.build()
 
    def __del__(self):
-#    print 'Destroying manifold'
+#     print 'Destroying manifold'
      self.erase()
      Mcomplex.Count = Mcomplex.Count - 1
 
    def erase(self):
+     self.NormalSurfaces = []
+     self.AlmostNormalSurfaces = []
      for face in self.Faces:
        face.erase()
      self.Faces = []
@@ -110,6 +112,7 @@ class Mcomplex:
      self.Vertices = []
      while len(self.Tetrahedra):
        self.delete_tet(self.Tetrahedra[0])
+
 
    def copy(self, base_arrow = None):
      new_tets = []
@@ -436,7 +439,7 @@ class Mcomplex:
          out = t3m_choose_pager()
          for surface in self.NormalSurfaces:
             out.write("-------------------------------------\n\n")
-            surface.info(out)
+            surface.info(self, out)
             out.write('\n')
       except IOError:
          pass
@@ -446,7 +449,7 @@ class Mcomplex:
          out = t3m_choose_pager()
          for surface in self.AlmostNormalSurfaces:
             out.write("-------------------------------------\n\n")
-            surface.info(out)
+            surface.info(self, out)
             out.write('\n')
       except IOError:
          pass

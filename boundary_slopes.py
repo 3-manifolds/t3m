@@ -107,6 +107,8 @@ def convert_quads_SnapPea_to_t3m(eqn):
 # mapped through.  So, e.g. OneCuspedManifold.volume() works
 
 class OneCuspedManifold(t3m.Mcomplex):
+    Count = 0
+    
     def __init__(self, triangulation):
         if triangulation.__class__ == SnapPea.Triangulation:
             manifold = triangulation
@@ -123,11 +125,16 @@ class OneCuspedManifold(t3m.Mcomplex):
         self.SnapPeaTriangulation = manifold
         self.ClosedSurfaces = []
         self.AngleStructures = []
-
         # finally set cusp equations
 
         self.CuspEquations = map(convert_quads_SnapPea_to_t3m, manifold.get_cusp_equations()[0])
-        
+        OneCuspedManifold.Count += 1
+
+    def __del__(self):
+        t3m.Mcomplex.__del__(self)
+#        print "Destroying OneCuspedManifold"
+        OneCuspedManifold.Count -= 1
+
     # should really disable all t3m.Mcomplex methods which
     # change the triangulation as need to keep the two reps
     # in sync.
@@ -137,6 +144,7 @@ class OneCuspedManifold(t3m.Mcomplex):
     # picture, this is the order of zero of the corresponding shape
     # parameter.
 
+        
     def find_normal_surfaces(self, modp=0):
         t3m.Mcomplex.find_normal_surfaces(self, modp)
         for S in self.NormalSurfaces:
@@ -195,7 +203,7 @@ class OneCuspedManifold(t3m.Mcomplex):
         out = sys.stdout
         for surface in self.ClosedSurfaces:
             out.write("-------------------------------------\n\n")
-            surface.info(out)
+            surface.info(self, out)
             out.write('\n')
 
     # See class below for more on an angle structure.  The equations
@@ -595,6 +603,7 @@ def draw_star(M,c):
     #print "Edge err: %f" %  abs( s[0]*s[1]*s[2]*s[3]*s[4] - 1)
     star_ends = [1 + 0j]
     for z in s:
+        z = z/abs(z)
         star_ends.append( z*star_ends[-1])
 
     size = 400
