@@ -23,7 +23,7 @@ containing the package.  In order for python to find the package you
 must add this directory to your PYTHONPATH environment variable.  For
 example:
 
-export PYTHONPATH=$PYTHONPATH:~/t3m
+export PYTHONPATH=$HOME
 
 Bugs and Comments
 -------------------------
