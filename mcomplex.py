@@ -13,7 +13,7 @@ from arrow import Arrow
 from edge import Edge
 from vertex import Vertex
 from surface import Surface, SpunSurface, ClosedSurface
-from Solver import solver
+from FXrays import find_Xrays
 import Numeric
 import whrandom
 import os
@@ -354,7 +354,7 @@ class Mcomplex:
          surface.erase()
          self.NormalSurfaces.remove(surface)
       self.build_matrix()
-      coeff_list = solver.find_vertices(self.QuadMatrix.rows,
+      coeff_list = find_Xrays(self.QuadMatrix.rows,
                                         self.QuadMatrix.columns,
                                         self.QuadMatrix.matrix, modp)
       for coeff_vector in coeff_list:
