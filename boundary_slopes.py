@@ -207,7 +207,7 @@ class OneCuspedManifold(t3m.Mcomplex):
             out.write('\n')
 
     # See class below for more on an angle structure.  The equations
-    # are nominally inhomongenious, with (sum angles around edge) = 2
+    # are nominally inhomogeneous, with (sum angles around edge) = 2
     # pi and (sum 3 angles in triangle) = pi.  So we add an extra
     # dummy variable (essentially "pi") to make them homogeneous.
 

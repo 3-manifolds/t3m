@@ -48,6 +48,9 @@ MeetsTri = {E01:array((1,1,0,0)), E02:array((1,0,1,0)), E21:array((0,1,1,0)),
 MeetsOct =  {E01:array((1,1,2)), E02:array((1,2,1)), E21:array((2,1,1)),
              E32:array((1,1,2)), E31:array((1,2,1)), E03:array((2,1,1))}
 
+DisjointQuad = {E01:2, E02:1, E21:0,
+               E32:2, E31:1, E03:0}
+
 QuadWeights = (array((1,0,0)), array((0,1,0)), array((0,0,1)) )
 
 WeightVector = array([1,1,1])
@@ -98,6 +101,27 @@ class Surface:
     for i in range(self.Size):
         shifts += [ self.Coefficients[i] * w for w in QuadShifts[self.Quadtypes[i]]]
     self.Shifts = shifts
+
+  def find_edge_linking_annuli(self, manifold):
+    """
+    Surface.find_edge_linking_annuli(mcomplex) returns a list of the
+    indices of those edges for which the Surface contains an edge-linking
+    annulus (and hence has an obvious compression).
+    """
+    if not self in manifold.NormalSurfaces:
+      raise ValueError, 'That manifold does not contain the Surface!'
+    linked_edges = []
+    for edge in manifold.Edges:
+      is_linked = 1
+      for corner in edge.Corners:
+        quad = DisjointQuad[corner.Subsimplex]
+        if ( self.Coefficients[corner.Tetrahedron.Index] == 0 or
+             self.Quadtypes[corner.Tetrahedron.Index] != quad ): 
+          is_linked = 0
+          break
+      if is_linked:
+        linked_edges.append(edge.Index)
+    return linked_edges
 
   def info(self, out = sys.stdout):
     if self.type() == "normal":
@@ -261,7 +285,7 @@ class ClosedSurface(Surface):
   def get_edge_weight(self, edge):
     j = edge.Index
     return self.EdgeWeights[j]
-  
+        
   # The next function decides if a normal surface bounds a subcomplex.
   # The thing is to note is that given any surface, then there is a unique
   # maximal subcomplex disjoint from it -- consisting of all simplices
