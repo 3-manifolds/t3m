@@ -1,0 +1,18 @@
+Virtually all of the kernel documentation is contained
+in the source code itself.  If you're not sure where
+to begin, you should
+
+(1)	Read SnapPea.h.	This is technically not part of the
+	kernel, but rather the protocol for how the kernel
+	and the UI should communicate.
+
+(2)	Read triangulation.h.  It describes the data structure
+	which SnapPea uses to pass manifolds from one module
+	to another.
+
+(3)	Read the source code in the files of greatest interest
+	to you.  Triangulation.h makes extensive references
+	to what is found where in the remaining code.
+
+Please see detab.c for information on getting the tab
+stops to look right on a unix machine.
