@@ -29,6 +29,9 @@ Shift = {E01:(-1,1,0), E02:(1,0,-1), E21:(0,-1,1),
 VertexVector = {V0:(1,0,0,0), V1:(0,1,0,0),
                 V2:(0,0,1,0), V3:(0,0,0,1)}
 
+# Note: there is also a class called Matrix as part of Numeric,
+# this is confusing.  --NMD 2003/7/26
+
 class Matrix:
 
      def __init__(self, rows, columns):
@@ -49,6 +52,9 @@ class Matrix:
           for i in range(self.rows):
             result += repr(self.matrix[i*self.columns:(i+1)*self.columns].tolist())+'\n'
           return result
+
+     def to_list(self):
+          return [ self.matrix[i*self.columns:(i+1)*self.columns].tolist()  for i in range(self.rows)]
 
 # An Mcomplex is a union of tetrahedra with faces identified in pairs.
 # The edges (vertices) are equivalence classes under the induced equivalence
