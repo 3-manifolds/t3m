@@ -1,5 +1,7 @@
 import SnapPea, t3m, sys
 from FXrays import find_Xrays
+from LinearAlgebra import generalized_inverse
+from surface import DisjointQuad
 from types import *
 import random
 
@@ -127,9 +129,10 @@ class OneCuspedManifold(t3m.Mcomplex):
         self.ClosedSurfaces = []
         self.AngleStructures = []
         self.TautStructures = []
-        # finally set cusp equations
+        # finally set cusp equations and build the angle vector
 
         self.CuspEquations = map(convert_quads_SnapPea_to_t3m, manifold.get_cusp_equations()[0])
+        self.build_angle_vector()
         OneCuspedManifold.Count += 1
 
     def __del__(self):
@@ -146,6 +149,29 @@ class OneCuspedManifold(t3m.Mcomplex):
     # picture, this is the order of zero of the corresponding shape
     # parameter.
 
+    def build_angle_vector(self):
+        """
+        Finds a solution to the angle equations which has trivial
+        holonomy on the peripheral torus, but may have negative angles.
+        Used to compute the euler characteristic of a spun surface.
+        """
+        n = len(self)
+        matrix = []
+        for edge in self.Edges:
+          eqn = [0,]*(3 * n)
+          for corner in edge.Corners:
+            i = corner.Tetrahedron.Index
+            eqn[3*i + DisjointQuad[corner.Subsimplex]] += 1
+          matrix.append(eqn)
+                
+        for i in range(n):
+          matrix.append( [0,]*(3*i) + [1,1,1] + [0,]*(3*(n - i - 1)) )
+
+        matrix += self.CuspEquations
+        A = t3m.Numeric.array(matrix)
+        b = t3m.Numeric.array([2]*n + [1]*n + [0,0])
+        Ai = generalized_inverse(A)
+        self.Anglevector = t3m.Numeric.matrixmultiply(Ai, b)
         
     def find_normal_surfaces(self, modp=0):
         t3m.Mcomplex.find_normal_surfaces(self, modp)
@@ -210,24 +236,24 @@ class OneCuspedManifold(t3m.Mcomplex):
     # are nominally inhomogeneous, with (sum angles around edge) = 2
     # pi and (sum 3 angles in triangle) = pi.  So we add an extra
     # dummy variable (essentially "pi") to make them homogeneous.
+    # (FXrays likes homogeneous systems.)
 
     def build_angle_matrix(self):
         n = len(self)
 
-        edge_to_quad = {t3m.E01:2, t3m.E02:1, t3m.E03:0, t3m.E12:0, t3m.E13:1, t3m.E23:2}
         gluing_equations = []
         for edge in self.Edges:
             eqn = [0,]*(3 * n)
             for corner in edge.Corners:
                 i = corner.Tetrahedron.Index
-                eqn[3*i + edge_to_quad[corner.Subsimplex]] += 1
+                eqn[3*i + DisjointQuad[corner.Subsimplex]] += 1
             gluing_equations.append(eqn)
                 
         angle_eqns = []
-        # these say that the angles 
+        # These say that the angles add up to 2Pi around an edge.
         for gluing_eqn in gluing_equations:
             angle_eqns += (gluing_eqn + [-2])
-
+        # These say that the angles of a triangle add up to Pi. 
         for i in range(n):
             tri_eqn = [0,]*(3*i) + [1,1,1] + [0,]*(3*(n - i - 1)) + [-1]
             angle_eqns += tri_eqn

@@ -8,7 +8,8 @@
 
 from simplex import *
 from Numeric import *
-from LinearAlgebra import *
+# array, transpose, matrixmultiply, dot, not_equal
+from LinearAlgebra import generalized_inverse
 import sys
 
 # NOTE (1) The functions in this module only make sense for closed
@@ -70,6 +71,28 @@ NonInteger = 'Error'
 
 # NOTE: The convention is that the order of the quads is (Q03, Q13, Q23)
 
+def gcd(x, y):
+    if x == 0:
+        if y == 0:
+            raise ValueError, "gcd(0,0) is undefined."
+        else:
+            return abs(y)
+    x = abs(x)
+    y = abs(y)
+    while y != 0:
+        r = x%y
+        x = y
+        y = r
+    return x
+
+def reduce_slope( slope ):
+    a, b = slope
+    if a == b == 0:
+        return slope, 0
+    g = gcd(a,b)
+    a, b = a/g, b/g
+    return (a,b), g
+
 class Surface:
   Count = 0
 
@@ -77,9 +100,11 @@ class Surface:
     self.Size = len(manifold)
     Q = not_equal(quadvector, 0).resize((self.Size,3))
     A = array(quadvector).resize((self.Size,3))
-    Surface.Count += 1
+    self.Quadvector = quadvector
     self.Coefficients = matrixmultiply(A,WeightVector)
     self.Quadtypes = matrixmultiply(Q,TypeVector)
+    Surface.Count += 1
+
     
   def __del__(self):
 #    print "Destroying Surface"
@@ -147,7 +172,7 @@ class ClosedSurface(Surface):
     ClosedSurface.Count += 1
 
   def __del__(self):
-    ClosedSurface.count -= 1
+    ClosedSurface.Count -= 1
 
   def build_weights(self, manifold):
 
@@ -173,16 +198,15 @@ class ClosedSurface(Surface):
     # null space, i.e. by adding an equation for each vertex v which
     # sets the sum of the coefficients of triangles in the support of
     # Link(v) equal to 0.  The resulting system A'w = b is now
-    # non-singular, but not square.  Since the linear equation solvers
-    # like square systems, we multiply both sides by the transpose of
-    # A before solving.  We then adjust the solution vector by adding the
-    # unique linear combination of vertex links which produces a non-negative
-    # vector w' with a coefficient of 0 on some triangle in each vertex links.
-    # Now we can construct self.Weights by interleaving
-    # the vector w' and the vector q of quadweights.
-    #   The vector self.EdgeWeights is constructed by simply multiplying
-    # the incidence matrix for edges meeting quads and triangles times the
-    # vector self.Weights.
+    # non-singular, but not square.  We solve it by using the
+    # "generalized inverse".  We then adjust the solution vector by
+    # adding the unique linear combination of vertex links which
+    # produces a non-negative vector w' with a coefficient of 0 on
+    # some triangle in each vertex links.  Now we can construct
+    # self.Weights by interleaving the vector w' and the vector q of
+    # quadweights.  The vector self.EdgeWeights is constructed by
+    # simply multiplying the incidence matrix for edges meeting quads
+    # and triangles times the vector self.Weights.
     
     self.Weights = zeros( 7*self.Size )
     eqns = []
@@ -232,11 +256,8 @@ class ClosedSurface(Surface):
 
     A =  array(eqns)
     b =  array(constants)
-    tA = transpose(A)
-    U = matrixmultiply(tA,A)
-    v = matrixmultiply(tA,b)
-
-    x = solve_linear_equations(U,v)
+    Ainv = generalized_inverse(A)
+    x = matrixmultiply(Ainv, b)
 
     # Subtract off as many vertex links as possible.
     for vertex in manifold.Vertices:
@@ -363,7 +384,7 @@ class ClosedSurface(Surface):
       out.write("Normal surface #%d of Euler characteristic %d\n"
                 %(manifold.NormalSurfaces.index(self), self.EulerCharacteristic))
       # addional message about bounding subcomplex
-      b, d, t = self.bounds_subcomplex()
+      b, d, t = self.BoundingInfo
       if b == 1:
         out.write("  Bounds %s subcomplex\n"  % t)
       elif d == 1:
@@ -419,12 +440,26 @@ class SpunSurface(Surface):
     surface.BoundarySlope = (-dot_product(surface.Shifts, cusp_equations[1]),
                              dot_product(surface.Shifts, cusp_equations[0]) )
 
+  def find_euler_characteristic(self, manifold):
+     quadvector = array(self.Quadvector, 'd')
+     floatresult = dot(manifold.Anglevector, quadvector)
+     intresult = round(floatresult)
+     error = abs(floatresult - intresult)
+     if error > .0000001:
+         raise OverflowError, 'Yikes! A non-integral euler characteristic!'
+     return -int(intresult)
+
   def info(self, manifold, out = sys.stdout):
-    out.write("SpunSurface: Slope %s;  Incompressible %s\n" % (self.BoundarySlope, self.Incompressible))
+    out.write("SpunSurface.\n Slope: %s; Boundary components: %d; " %
+               reduce_slope(self.BoundarySlope))
+    out.write("Euler characteristic: %d\n"%
+              self.find_euler_characteristic(manifold))
+    out.write(" Incompressible: %s\n" % self.Incompressible)
     for i in range(self.Size):
       quad_weight = self.Coefficients[i]
       if quad_weight > 0:
-        weight = "  Tet %d: Quad Type  Q%d3, weight %d" % (i, self.Quadtypes[i], quad_weight)
+        weight = ("  Tet %d: Quad Type  Q%d3, weight %d" %
+                  (i, self.Quadtypes[i], quad_weight))
       else:
         weight = "  Tet %d: no quads" % i
       out.write(weight  + "\n")
