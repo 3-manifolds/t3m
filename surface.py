@@ -4,7 +4,7 @@ from Numeric import *
 from LinearAlgebra import *
 import sys
 
-# NOTE the functions in this module only make sense for closed
+# NOTE (1) The functions in this module only make sense for closed
 # manifolds.  It will need to be rewritten to accomodate spun normal
 # surfaces.  In particular, build_weights tries to compute the
 # triangle weights from the quad weights.  We could set them to
@@ -13,11 +13,22 @@ import sys
 # For spun surfaces we will want to compute the boundary slope.  We
 # should perhaps decide what the degenerate form of the boundary slope
 # is for a spherical vertex link. (0/0?) For a higher genus vertex
-# link the object that corresonds to a boundary slope is an element of
-# H^1 of the link.  This is the class represented by the shift
-# cocycle.  The boundary class generates its kernel, in the genus 1 case.
-# Now that I mention it, I think that the shift cocycle is the natural
-# object to compute in all cases.
+# link the object that corresponds to a boundary slope is an element
+# of H^1 of the link.  This is the class represented by the shift
+# cocycle.  The boundary class generates the kernel of the shift
+# class, in the genus 1 case.  Now that I mention it, I think that
+# the shift class is the natural object to compute in all cases.
+#
+# NOTE (2) Many of the functions in this module also assume that the
+# triangulation has only one vertex.  If there are more vertices then one
+# has to be more careful about saying things like "bounds a thick subcomplex"
+# or "bounds a thin subcomplex" - it might bound both.  And an edge linkig
+# surface might not be a torus.  It might be good to distinguish surfaces
+# that bound regular neighborhoods of graphs from other surfaces that bound
+# thin subcomplexes.
+#
+# NOTE (3) Our plan is to create (at least) three subclasses of the
+# Surface class: Closed_Surface, Spun_Surface, Bounded_Surface.
 
 #Incidence dictionaries for quads, triangles and octagons
 
@@ -206,6 +217,7 @@ class Surface:
 
     return (bounds_subcomplex, double_bounds_subcomplex, thick_or_thin)
 
+###### It is not a torus unless the edge is a loop!
   # A surface is an edge linking torus iff all edge weights are 2 except one which
   # is zero.  Returns pair (is linking torus, edge it links around).
   
