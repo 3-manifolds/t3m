@@ -1,1 +1,1 @@
-from SnapPea import *
+__all__ = ["SnapPea", "SnapPeaC"]

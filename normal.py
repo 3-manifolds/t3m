@@ -16,7 +16,7 @@ from surface import *
 #from Numeric import *
 import os
 from array import array
-import Solver._normal
+from Solver import _normal
 
 # The height shift dictionaries for the three quad types.
 Shift = {E01:(-1,1,0), E02:(1,0,-1), E21:(0,-1,1),
