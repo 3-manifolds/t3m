@@ -1,17 +1,16 @@
-import gzip, struct, os, types, re
 import SnapPea
 from mcomplex import *
 
 
-#------------------- Support for SnapPea Censuses --------------------
-# Takes a list where the ith element represents the gluing data
-# for the ith tetrahedron:
-#
-#  ( [Neighbors], [Glueings] )
-#
-# and creates the corresponding Mcomplex.
-
 def Mcomplex_from_data(SnapPeaTriangulation):
+"""
+Takes a list where the ith element represents the gluing data
+for the ith tetrahedron:
+
+( [Neighbors], [Glueings] )
+
+and creates the corresponding Mcomplex.
+"""
     M = SnapPeaTriangulation
     fill = 1 in [M.cusp_is_fillable(i) for i in range(M.get_num_cusps())]
     gluing_data = SnapPeaTriangulation.get_gluing_data(fill)
@@ -23,10 +22,12 @@ def Mcomplex_from_data(SnapPeaTriangulation):
             tets[i].attach(TwoSubsimplices[k], tets[neighbors[k]], perms[k])
     return Mcomplex(tets)
 
-# A manifold_list is a subscriptable object containing Mcomplexes
-# representing orientable closed manifolds from the SnapPea Census.
 
 class manifold_list:
+"""
+A manifold_list is a subscriptable object containing Mcomplexes
+which represent manifolds obtained from SnapPea triangulations.
+"""
     def __init__(self, census):
         self.census = census
 

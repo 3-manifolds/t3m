@@ -10,13 +10,11 @@
 # The triangle types are 0, 1, 2, 3 where triangle type i cuts off
 # vertex i.
 
-from string import *
-from mcomplex import *
-from surface import *
-#from Numeric import *
 import os
 from array import array
 from Solver import solver
+from mcomplex import *
+from surface import *
 
 # The height shift dictionaries for the three quad types.
 Shift = {E01:(-1,1,0), E02:(1,0,-1), E21:(0,-1,1),
