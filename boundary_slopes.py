@@ -206,6 +206,30 @@ class OneCuspedManifold(t3m.Mcomplex):
     def build_angle_matrix(self):
         n = len(self)
 
+        edge_to_quad = {t3m.E01:2, t3m.E02:1, t3m.E03:0, t3m.E12:0, t3m.E13:1, t3m.E23:2}
+        gluing_equations = []
+        for edge in self.Edges:
+            eqn = [0,]*(3 * n)
+            for corner in edge.Corners:
+                i = corner.Tetrahedron.Index
+                eqn[3*i + edge_to_quad[corner.Subsimplex]] += 1
+            gluing_equations.append(eqn)
+                
+        angle_eqns = []
+        # these say that the angles 
+        for gluing_eqn in gluing_equations:
+            angle_eqns += (gluing_eqn + [-2])
+
+        for i in range(n):
+            tri_eqn = [0,]*(3*i) + [1,1,1] + [0,]*(3*(n - i - 1)) + [-1]
+            angle_eqns += tri_eqn
+
+        self.AngleMatrix = t3m.Matrix(len(gluing_equations) + n, 3*n + 1)
+        self.AngleMatrix.matrix = t3m.Numeric.array( angle_eqns, 'i')
+
+    def build_angle_matrix_old(self):
+        n = len(self)
+
         # should really compute these directly from
         # the t3m representation.
         
@@ -223,6 +247,31 @@ class OneCuspedManifold(t3m.Mcomplex):
 
         self.AngleMatrix = t3m.Matrix(len(gluing_equations) + n, 3*n + 1)
         self.AngleMatrix.matrix = t3m.Numeric.array( angle_eqns, 'i')
+
+    def build_angle_matrix_new(self):
+        n = len(self)
+
+        # should really compute these directly from
+        # the t3m representation.
+        
+        #gluing_equations = map(convert_quads_SnapPea_to_t3m,
+        #  self.SnapPeaTriangulation.get_gluing_equations())
+
+        gluing_equations = self.SnapPeaTriangulation.get_gluing_equations()
+
+        angle_eqns = []
+        # these say that the angles
+
+        g = len(gluing_equations)
+        for i in range(g):
+            angle_eqns += (gluing_equations[i] + [-2] + [0,]*i + [-1] + [0,]*(g - i - 1))
+
+        for i in range(n):
+            tri_eqn = [0,]*(3*i) + [1,1,1] + [0,]*(3*(n - i - 1)) + [-1] + [0,]*g
+            angle_eqns += tri_eqn
+
+        self.AngleMatrix = t3m.Matrix(g + n, 3*n + g +  1)
+        self.AngleMatrix.matrix = t3m.Numeric.array( angle_eqns, 'i')
         
     def find_angle_structures(self):
         self.build_angle_matrix()
@@ -230,6 +279,14 @@ class OneCuspedManifold(t3m.Mcomplex):
                                 self.AngleMatrix.columns,
                                 self.AngleMatrix.matrix, modp=0, filtering=0)
         self.AngleStructures = [AngleStructure(coeff_vector) for coeff_vector in coeff_list]
+
+    def find_angle_structures_new(self):
+        n = len(self)
+        self.build_angle_matrix_new()
+        coeff_list = find_Xrays(self.AngleMatrix.rows,
+                                self.AngleMatrix.columns,
+                                self.AngleMatrix.matrix, modp=0, filtering=0)
+        self.AngleStructures = [AngleStructure(coeff_vector[:3*n + 1]) for coeff_vector in coeff_list]
 
     def angle_structure_info(self):
         for structure in self.AngleStructures:
@@ -508,9 +565,92 @@ def test_gluing_equations(M):
         print evaluate_equation(eqn, edge_param)
         
             
+#----------code for testing shape theory-----------------
+
+import cmath, math
+
+
+def full_shapes(M):
+    shapes = M.tet_shapes(1)
+    full_shapes = []
+    for z in [shape["shape rect"] for shape in shapes]:
+        full_shapes +=  [z, 1/(1-z), (z-1)/z]
+    return convert_quads_SnapPea_to_t3m(full_shapes)
+
+def hyperbolic_to_angles(M):
+    return [cmath.log(z).imag for z in full_shapes(M)]
+
+def test_angles(M, angles):
+    angles_pi = angles + [math.pi]
+    return [dot_product(angles_pi, eqn) for eqn in  M.AngleMatrix.to_list()]
+
+# code specific to m029
+
+def my_shapes(M):
+    s = full_shapes(M)
+    return [s[2], s[8], s[7], s[8], s[11]]
+
+def draw_star(M,c):
+    s = my_shapes(M)
+    #print "Edge err: %f" %  abs( s[0]*s[1]*s[2]*s[3]*s[4] - 1)
+    star_ends = [1 + 0j]
+    for z in s:
+        star_ends.append( z*star_ends[-1])
+
+    size = 400
+    scale = size/(2.2 * max(map(abs, star_ends)))
+    d = 2
+
+    def z_to_scr(z):
+        return map(int, (size/2 + scale * z.real, size/2 - scale * z.imag))
+        
+    for z in star_ends + [0j]:
+        x,y = z_to_scr(z)
+        c.create_oval( x - d, y - d, x + d, y + d, fill = "black" )
+        c.create_line(size/2, size/2, x,  y, fill =  "black")
+
+    for i in range(5):
+        x,y = z_to_scr(star_ends[i])
+        u,v = z_to_scr(star_ends[(i + 1)%5])
+        c.create_line(u, v, x, y, fill = "black")
+        
+import time, Tkinter
+
+def show_moving_star():
+    M = SnapPea.get_manifold("m029(7,-5)")
+    M.install_current_curve_bases()
+
+    size = 400
+    frame = Tkinter.Frame()
+    c = Tkinter.Canvas(frame, width="%d" % size, height="%d" % size)
+    c.pack(side=Tkinter.TOP)
+    frame.pack()
+
+    for i in range(160):
+        time.sleep(0.05)
+        M.set_cusp(0, (1 -  i/200.0), 0)
+        for i in c.find_all():
+            c.delete(i)
+        draw_star(M,c)
+        frame.update()
+
+    frame.mainloop()
+        
+
+
+#---fixing closed surface bug
+
+def show_closed_bug():
+    N = OneCuspedManifold("s536")
+    N.find_closed_normal_surfaces()
+    S = N.ClosedSurfaces[0]
+    S.build_weights()
+
     
-    
+
+        
+        
+
 
     
     
-

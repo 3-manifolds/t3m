@@ -166,6 +166,16 @@ class ClosedSurface(Surface):
     tA = transpose(A)
     U = matrixmultiply(tA,A)
     v = matrixmultiply(tA,b)
+
+    ##def print_math(mat):
+##      s = repr(mat.tolist())
+##      s = s.replace("[", "{")
+##      s = s.replace("]", "}")
+##      print s, "\n"
+
+##    for XX in [A, b, tA, U, v]:
+##      print_math(XX)
+
     x = solve_linear_equations(U,v)
 
     # Subtract off as many vertex links as possible.
@@ -357,9 +367,9 @@ class SpunSurface(Surface):
     for i in range(len(M)):
       quad_weight = self.Coefficients[i]
       if quad_weight > 0:
-        weight = "  Tet %i: Quad Type  Q%d3, weight %d" % (i, self.Quadtypes[i], quad_weight)
+        weight = "  Tet %d: Quad Type  Q%d3, weight %d" % (i, self.Quadtypes[i], quad_weight)
       else:
-        weight = "   Tet %i: no quads"
+        weight = "  Tet %d: no quads" % i
       out.write(weight  + "\n")
 
 
