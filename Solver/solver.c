@@ -58,15 +58,15 @@ static PyMethodDef vertex_methods[] = {
 /* Initialization function for the module */
 
 DL_EXPORT(void)
-init_normal(void)
+initsolver(void)
 {
 	PyObject *m, *d;
 
 	/* Create the module and add the functions */
-	m = Py_InitModule("_normal", vertex_methods);
+	m = Py_InitModule("solver", vertex_methods);
 
 	/* Add some symbolic constants to the module */
 	d = PyModule_GetDict(m);
-	ErrorObject = PyErr_NewException("_normal.error", NULL, NULL);
+	ErrorObject = PyErr_NewException("solver.error", NULL, NULL);
 	PyDict_SetItemString(d, "error", ErrorObject);
 }

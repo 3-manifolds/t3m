@@ -1,8 +1,8 @@
 #CFLAGS = -O2 -g
 CFLAGS = -O3 -march=i686 -mcpu=i686 -I/usr/local/include/python2.2 -I/usr/include/python2.2
 
-_normalmodule.so: _normal.o mmx.o vertex.o
-	gcc -shared -o _normalmodule.so _normal.o mmx.o vertex.o
+solvermodule.so: solver.o mmx.o vertex.o
+	gcc -shared -o solvermodule.so solver.o mmx.o vertex.o
 
 test: test0 test1 test2 test3
 
@@ -18,7 +18,7 @@ test2:  test2.c vertex.o mmx.o vertex.h
 test3:  test3.c vertex.o mmx.o vertex.h
 	gcc $(CFLAGS) -o test3 test3.c vertex.o mmx.o -static -lc
 
-_normal.o: _normal.c 
+solver.o: solver.c 
 
 vertex.o: vertex.c vertex.h
 

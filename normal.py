@@ -16,7 +16,7 @@ from surface import *
 #from Numeric import *
 import os
 from array import array
-from Solver import _normal
+from Solver import solver
 
 # The height shift dictionaries for the three quad types.
 Shift = {E01:(-1,1,0), E02:(1,0,-1), E21:(0,-1,1),
@@ -84,7 +84,7 @@ def find_normal_surfaces(self):
           surface.erase()
           self.NormalSurfaces.remove(surface)
      self.build_matrix()
-     coeff_list = _normal.find_vertices(self.QuadMatrix.rows,
+     coeff_list = solver.find_vertices(self.QuadMatrix.rows,
                                   self.QuadMatrix.columns,
                                   self.QuadMatrix.matrix)
      for coeff_vector in coeff_list:
