@@ -8,7 +8,7 @@ def next_after(m):
    while 1:
      m = m+1
      M = mflds[m]
-     if M.has_selfadjacent():
+     if M.has_self_adjacent():
        print M.EdgeValences
        M.erase()
      else:
@@ -33,13 +33,13 @@ Mcomplex.complexity = complexity
 #
 # A new Mcomplex method to report whether M has a self-adjacent edge.
 #
-def has_selfadjacent(self):
+def has_self_adjacent(self):
   for edge in self.Edges:
-    if edge.selfadjacent():
+    if edge.self_adjacent():
       return 1
   return 0
 
-Mcomplex.has_selfadjacent = has_selfadjacent
+Mcomplex.has_self_adjacent = has_self_adjacent
 
 #
 # A new Mcomplex method to list the self-opposite edges.
@@ -90,7 +90,7 @@ Mcomplex.veeble_move = veeble_move
 
 def smart_veeble_moves(self, repeats = 1, verbose=1):
    while repeats > 1:
-     if self.has_selfadjacent():
+     if self.has_self_adjacent():
        print 'Has self-adjacent edge :^)\n'
        return 1
      if verbose:
@@ -137,7 +137,7 @@ Mcomplex.dumb_veeble_move = dumb_veeble_move
 
 def dumb_veeble_moves(self, repeats = 1, verbose=1):
    while repeats > 1:
-     if self.has_selfadjacent():
+     if self.has_self_adjacent():
        print 'Has self-adjacent edge :^)\n'
        return 1
      if verbose:

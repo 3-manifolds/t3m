@@ -72,7 +72,7 @@ class Edge:
      return 1
 
 # Return 1 if two sides of a 2-simplex are identified to the edge.
-   def selfadjacent(self):
+   def self_adjacent(self):
      for corner in self.Corners:
        for one_subsimplex in AdjacentEdges[corner.Subsimplex]:
          if corner.Tetrahedron.Class[one_subsimplex] is self:
