@@ -1,7 +1,7 @@
 Installation Instructions
 -------------------------
 
-This is a pure python module. It requires Python 2.2 or newer.  It
+This is a pure python package. It requires Python 2.2 or newer.  It
 also requires SnapPeaPython and FXrays, available from
 http://www.math.uic.edu/t3m
 
@@ -13,12 +13,12 @@ If you have superuser privileges on your UNIX system:
 This will install t3m in the site-packages directory of your
 python installation.
 
-If are not a superuser and wish to install SnapPeaPython in your home directory:
+If are not a superuser and wish to install t3m in your home directory:
 
   python setup.py build
   python setup.py install --install-lib ~
 
-This will create a subdirectory of your home directory named SnapPea
+This will create a subdirectory of your home directory named t3m
 containing the package.  In order for python to find the package you
 must add this directory to your PYTHONPATH environment variable.  For
 example:
