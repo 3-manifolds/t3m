@@ -52,12 +52,13 @@ def normalize_slope( slope ):
         b = -b
     return (a,b)
 
-def find_distinct_triangulations(M, restarts=5, moves=40):
+def find_distinct_triangulations(M, restarts=15, moves=40):
     tris = [M.clone()]
     for i in range(restarts):
         N = M.clone()
         for j in range(moves):
             N.randomize()
+            N.simplify()
             if not 1 in [ N.same_triangulation(P) for P in tris]:
                 tris.append(N)
 
@@ -125,6 +126,7 @@ class OneCuspedManifold(t3m.Mcomplex):
         self.SnapPeaTriangulation = manifold
         self.ClosedSurfaces = []
         self.AngleStructures = []
+        self.TautStructures = []
         # finally set cusp equations
 
         self.CuspEquations = map(convert_quads_SnapPea_to_t3m, manifold.get_cusp_equations()[0])
@@ -300,6 +302,17 @@ class OneCuspedManifold(t3m.Mcomplex):
         for structure in self.AngleStructures:
             print structure
 
+    def find_taut_structures(self):
+        self.build_angle_matrix()
+        coeff_list = find_Xrays(self.AngleMatrix.rows,
+                                self.AngleMatrix.columns,
+                                self.AngleMatrix.matrix, modp=0, filtering=1)
+        self.TautStructures = [AngleStructure(coeff_vector) for coeff_vector in coeff_list]
+ 
+    def taut_structure_info(self):
+        for structure in self.TautStructures:
+            print structure
+       
     def mark_incompressible(self):
         for surfaces in (self.NormalSurfaces, self.ClosedSurfaces):
             for S in surfaces:
@@ -384,7 +397,7 @@ def boundary_slopes_from_SnapPea(M):
     return N.boundary_slopes_with_trick()
 
 # tries several different triangulations to find smallest possible number
-# of boundary slopes.
+# of boundary slopes.  Usually use the super_surface_function below.
 
 def super_boundary_slopes_from_SnapPea(M):
     tris = find_distinct_triangulations(M)
@@ -434,6 +447,9 @@ class OneCuspedData:
     def __repr__(self):
         return  self.Name + "\t" + repr(self.IncompSlopesSubset) + "\t" + repr(self.IncompSlopesSuperset) + "\t" + self.SmallOrLarge
 
+
+
+
 def super_surfaces_in_SnapPea(M):
     data = OneCuspedData(M.get_name())
     tris = find_distinct_triangulations(M)
@@ -452,6 +468,20 @@ def super_surfaces_in_SnapPea(M):
     return data
 
             
+def super_surfaces_in_SnapPea_sans_angle(M):
+    data = OneCuspedData(M.get_name())
+    tris = find_distinct_triangulations(M)
+
+    for T in tris:
+        N = OneCuspedManifold(T)
+        N.find_normal_surfaces()
+        N.find_closed_normal_surfaces()
+
+        data.update_slopes_superset(N.boundary_slopes_with_trick())
+        if N.all_closed_surfaces_edge_linking():
+            data.update_small_or_large("small")
+
+    return data
 
     
 
@@ -524,9 +554,8 @@ def save_slopes(census, file_name):
 
     for M in census:
         if M.get_num_cusps() == 1:
-            N = spun_surfaces_from_SnapPea(M)
-            bs = tuple(boundary_slopes(N.NormalSurfaces))
-            f.write(M.get_name() + "\t" + repr(bs) + "\n" )
+            D = super_surfaces_in_SnapPea(M)
+            f.write(repr(D) + "\n" )
             f.flush()
     
 def check_against_old_mathematica_prog2(file_name="/Users/dunfield/work/work/old_projects/haken/manifold_data/old_normal_slopes"):
@@ -644,7 +673,39 @@ def show_moving_star():
         frame.update()
 
     frame.mainloop()
+
+
+def continue_angle(old, new):
+    poss = [ new + k * 2 * math.pi for k in range(-3, 4) ]
+    diff = [ (abs(old - p), p) for p in poss]
+    diff.sort()
+    return diff[0][1]
+             
+def anal_continue():
+    M = SnapPea.get_manifold("m029(7,-5)")
+    M.install_current_curve_bases()
+
+    data = []
+    angles = []
+    for i in range(16000):
+        M.set_cusp(0, (1 -  i/20000.0), 0)
+        data.append(my_shapes(M))
+
+        raw_angles = [ cmath.log(z).imag for z in my_shapes(M)]
+        if len(angles) == 0:
+            angles.append(raw_angles)
+        else:
+            angles.append([continue_angle(a,b) for a,b in  zip(angles[-1], raw_angles)])
+
+    return angles
         
+def print_angles(d,m):
+    for i in xrange(len(d)):
+        if i % m == 0:
+            print d[i]
+
+    print d[-1]
+
 
 
 #---fixing closed surface bug
