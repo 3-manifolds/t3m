@@ -5,7 +5,7 @@ from corner import Corner
 from arrow import Arrow
 from edge import Edge
 from vertex import Vertex
-from surface import Surface
+from surface import Surface, SpunSurface, ClosedSurface
 from Solver import solver
 import Numeric
 import whrandom
@@ -351,7 +351,13 @@ class Mcomplex:
                                         self.QuadMatrix.columns,
                                         self.QuadMatrix.matrix, modp)
       for coeff_vector in coeff_list:
-         self.NormalSurfaces.append(Surface(self, coeff_vector))
+          if max(self.LinkGenera) == 0: 
+               self.NormalSurfaces.append(ClosedSurface(self, coeff_vector))
+          elif self.LinkGenera.count(1) == len(self.LinkGenera):
+               self.NormalSurfaces.append(SpunSurface(self, coeff_vector))
+          else:
+               self.NormalSurfaces.append(Surface(self, coeff_vector))
+               
 
 # We need find_almost_normal_surfaces()
 

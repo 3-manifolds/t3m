@@ -61,8 +61,6 @@ class Surface:
     self.Manifold = manifold
     self.Coefficients = matrixmultiply(A,WeightVector)
     self.Quadtypes = matrixmultiply(Q,TypeVector)
-    self.Weights = zeros( 7*len(manifold) )
-    self.build_weights()
     
   def __del__(self):
     Surface.count = Surface.Count - 1
@@ -70,6 +68,34 @@ class Surface:
   def erase(self):
     self.Manifold = None
 
+  def type(self):
+    if min(self.Coefficients) < 0:
+      return "almost-normal"
+    else:
+      return "normal"
+
+  def info(self, out = sys.stdout):
+    M = self.Manifold
+    if self.type() == "normal":
+      out.write("Normal surface\n")
+    for i in range(len(M)):
+      quad_weight = self.Coefficients[i]
+      if quad_weight == -1:
+        weight = "  Quad Type Q%d3, weight: octagon" % self.Quadtypes[i]
+      elif quad_weight > 0:
+        weight = "  Quad Type  Q%d3, weight %d" % (self.Quadtypes[i], quad_weight)
+      else:
+        weight = "No quads"
+      out.write(weight  + "\n")
+
+class ClosedSurface(Surface):
+  Count = 0
+
+  def __init__(self, manifold, quadvector):
+    Surface.__init__(self, manifold, quadvector)
+    self.Weights = zeros( 7*len(manifold) )
+    self.build_weights()
+    
   def build_weights(self):
     eqns = []
     constants = []
@@ -162,12 +188,6 @@ class Surface:
     j = edge.Index
     return self.EdgeWeights[j]
   
-  def type(self):
-    if min(self.Coefficients) < 0:
-      return "almost-normal"
-    else:
-      return "normal"
-
   # The next function decides if a normal surface bounds a subcomplex.
   # The thing is to note is that given any surface, then there is a unique
   # maximal subcomplex disjoint from it -- consisting of all simplices
@@ -281,4 +301,12 @@ class Surface:
       out.write("  Edge %s has weight %d\n" 
                   % (self.Manifold.Edges[i], self.EdgeWeights[i]))
 
+#-----------------end class ClosedSurface---------------------------------------
+
+
+#-----------------begin class SpunSurface--------------------------------------
+
+class SpunSurface(Surface):
+  def compute_slopes(self):
+    pass
 
