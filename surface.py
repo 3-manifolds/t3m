@@ -159,22 +159,23 @@ class ClosedSurface(Surface):
           if MeetsQuad[edge.Corners[i].Subsimplex][self.Quadtypes[j]]:
             c -= self.Coefficients[j]
         constants.append(c)
+    # Correction added because linear_least_squares no longer works in LinearAlgebra,
+    # and because solve_linear_equations barfs if the system is singular.
+    # The null space of our system is spanned by the vector of all 1's, i.e.
+    # by the vertex link.  We add a row of ones to our matrix to force it
+    # to have nullity 0.  
+      eqns.append(ones(4*len(self.Manifold)))
+      constants.append(0.0)
 
-    # AAAAARRRRRGGGHHHHHH.
+    # This garbage is forced on us because solve_linear_equations is too dumb
+    # to work with matrices that aren't square.  We multiply both sides by
+    # the transpose of A to get a square system which, by the previous garbage,
+    # will now be nonsingular.
     A =  array(eqns)
     b =  array(constants)
     tA = transpose(A)
     U = matrixmultiply(tA,A)
     v = matrixmultiply(tA,b)
-
-    ##def print_math(mat):
-##      s = repr(mat.tolist())
-##      s = s.replace("[", "{")
-##      s = s.replace("]", "}")
-##      print s, "\n"
-
-##    for XX in [A, b, tA, U, v]:
-##      print_math(XX)
 
     x = solve_linear_equations(U,v)
 
