@@ -114,8 +114,8 @@ class Surface:
         if round ( x[4*i+j] ) - x[4*i+j] > .0000001:
           print x
           print self.Coefficients
-          print self.b
-          print self.A
+          print b
+          print A
           raise NonInteger, 'Weight is not an integer!'
         self.Weights[7*i + j ] = round( x[4*i + j] )
       if not self.Coefficients[i] == -1:
