@@ -419,7 +419,7 @@ PyObject *find_vertices(matrix_t *matrix, filter_list_t *filter_list){
 	  }
 	  else ++interior;
 	}
-	else  ++filtered;
+	else ++filtered;
       }
     }
 

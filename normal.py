@@ -79,14 +79,14 @@ def build_vertex_incidences(self):
          vertex.IncidenceVector[4*j:4*j+4] += VertexVector[corner.Subsimplex]
 Mcomplex.build_vertex_incidences = build_vertex_incidences
 
-def find_normal_surfaces(self):
+def find_normal_surfaces(self, modp=0):
      for surface in self.NormalSurfaces:
           surface.erase()
           self.NormalSurfaces.remove(surface)
      self.build_matrix()
      coeff_list = solver.find_vertices(self.QuadMatrix.rows,
                                   self.QuadMatrix.columns,
-                                  self.QuadMatrix.matrix)
+                                  self.QuadMatrix.matrix, modp)
      for coeff_vector in coeff_list:
           self.NormalSurfaces.append(Surface(self, coeff_vector))
 Mcomplex.find_normal_surfaces = find_normal_surfaces

@@ -3,12 +3,15 @@
 
 static PyObject *ErrorObject;
 
-static PyObject *t3m_find_vertices(PyObject *self, PyObject *args){
+static PyObject *t3m_find_vertices(PyObject *self, PyObject *args, PyObject *keywds){
   PyObject *result;
   PyObject *pymatrix;
   int rows, columns, length;
+  int modp = 0;
+  static char *kwlist[] = {"rows", "columns", "matrix", "modp"};
 
-  if ( !PyArg_ParseTuple(args, "iiO:find_vertices",  &rows, &columns, &pymatrix) )
+  if ( !PyArg_ParseTupleAndKeywords(args, keywds, "iiO|i:find_vertices", kwlist,
+			 &rows, &columns, &pymatrix, &modp) )
     return NULL;
 
   if ( !PySequence_Check(pymatrix) ){
@@ -36,11 +39,13 @@ static PyObject *t3m_find_vertices(PyObject *self, PyObject *args){
       Py_DECREF(Item);
       }
 
-    result = find_vertices(matrix, filter);
+    if (modp)
+      result = find_vertices_mod_p(matrix, filter);
+    else
+      result = find_vertices(matrix, filter);
   }
   return result;
 }
-
 
 /* Documentation */
 static char find_vertices_doc[]=
@@ -50,8 +55,9 @@ static char find_vertices_doc[]=
 /* List of functions defined in the module */
 
 static PyMethodDef vertex_methods[] = {
-	{"find_vertices",  t3m_find_vertices,  METH_VARARGS, find_vertices_doc },
-	{NULL,		NULL}		/* sentinel */
+  {"find_vertices", (PyCFunction)t3m_find_vertices, METH_VARARGS|METH_KEYWORDS,
+   find_vertices_doc},
+  {NULL,		NULL}		/* sentinel */
 };
 
 
