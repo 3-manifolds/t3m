@@ -1,11 +1,12 @@
 #CFLAGS = -O3 -march=i686 -mcpu=i686 -I/usr/local/include/python2.2 -I/usr/include/python2.2
-CFLAGS = -O3 -I/usr/local/include/python2.2 -I/usr/include/python2.2
+CFLAGS = -O3 -funroll-loops         -I/usr/local/include/python2.2 -I/usr/include/python2.2 
 
 #MMX = mmx.o
 MMX = no_mmx.o
+CC = gcc
 
 solvermodule.so: solver.o $(MMX) vertex.o
-	gcc -shared -o solvermodule.so solver.o $(MMX) vertex.o
+	$(CC) -shared -o solvermodule.so solver.o $(MMX) vertex.o
 
 test: test0 test1 test2 test3
 
