@@ -30,7 +30,7 @@ class Matrix:
      def __init__(self, rows, columns):
           self.rows = rows
           self.columns = columns
-          self.matrix = array('i', rows*columns*[0]) 
+          self.matrix = array(rows*columns*[0], 'i') 
 
      def __setitem__(self, ij, value):
           i, j = ij

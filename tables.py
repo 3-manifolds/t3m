@@ -3,14 +3,14 @@ from mcomplex import *
 
 
 def Mcomplex_from_data(SnapPeaTriangulation):
-"""
-Takes a list where the ith element represents the gluing data
-for the ith tetrahedron:
+    """
+    Takes a list where the ith element represents the gluing data
+    for the ith tetrahedron:
 
-( [Neighbors], [Glueings] )
+    ( [Neighbors], [Glueings] )
 
-and creates the corresponding Mcomplex.
-"""
+    and creates the corresponding Mcomplex.
+    """
     M = SnapPeaTriangulation
     fill = 1 in [M.cusp_is_fillable(i) for i in range(M.get_num_cusps())]
     gluing_data = SnapPeaTriangulation.get_gluing_data(fill)
@@ -24,10 +24,10 @@ and creates the corresponding Mcomplex.
 
 
 class manifold_list:
-"""
-A manifold_list is a subscriptable object containing Mcomplexes
-which represent manifolds obtained from SnapPea triangulations.
-"""
+    """
+    A manifold_list is a subscriptable object containing Mcomplexes
+    which represent manifolds obtained from SnapPea triangulations.
+    """
     def __init__(self, census):
         self.census = census
 
