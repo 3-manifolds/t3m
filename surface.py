@@ -124,13 +124,50 @@ class ClosedSurface(Surface):
     self.build_weights()
     
   def build_weights(self):
+
+    """Use self.QuadWeights self.QuadTypes vector to construct
+    self.Weights and self.EdgeWeights.  The vector self.Weights has size
+    7T and gives the weights of triangles and quads in each 3-simplex.
+    In each bank of 7 weights, the first 4 are triangle weights and the
+    last 3 are quad weights."""
+
+    #   Here is how it works.  We use the system of normal surface
+    # equations defined as follows.  For each edge e, and each face f
+    # containing e, let t1 and t2 be the two tetrahedra containing f.
+    # The weight of e can be expressed as the sum of two quad weights
+    # and two triangle weights in each of t1 and t2.  Set these
+    # expressions equal to get one equation in the system.  The
+    # resulting system can be written as Aw = Bq where w is the
+    # (unknown) vector of triangle weights and q is the (known) vector
+    # of quad weights.  Note that this system does not have positive
+    # coefficients, and the matrix A is singular with null space
+    # spanned by the triangle weights of the vertex links, which of
+    # course have all quad weights equal to 0.  We can make the system
+    # non-singular by restricting to the orthogonal complement of the
+    # null space, i.e. by adding an equation for each vertex v which
+    # sets the sum of the coefficients of triangles in the support of
+    # Link(v) equal to 0.  The resulting system A'w = b is now
+    # non-singular, but not square.  Since the linear equation solvers
+    # like square systems, we multiply both sides by the transpose of
+    # A before solving.  We then adjust the solution vector by adding the
+    # unique linear combination of vertex links which produces a non-negative
+    # vector w' with a coefficient of 0 on some triangle in each vertex links.
+    # Now we can construct self.Weights by interleaving
+    # the vector w' and the vector q of quadweights.
+    #   The vector self.EdgeWeights is constructed by simply multiplying
+    # the incidence matrix for edges meeting quads and triangles times the
+    # vector self.Weights.
+    
     eqns = []
     constants = []
     edge_matrix = []
     for edge in self.Manifold.Edges:
 
+      # Build the row of the incidence matrix that records which quads
+      # and triangles meet this edge.  We can use any tetrahedron that
+      # meets this edge to compute the row.
+      
       edge_row = zeros( 7*len(self.Manifold) )
-      #Use any tetrahedron that meets this edge to compute the weights.
       corner = edge.Corners[0]
       j = corner.Tetrahedron.Index
       edge_row[7*j:7*j+4] = MeetsTri[corner.Subsimplex]
@@ -140,6 +177,8 @@ class ClosedSurface(Surface):
         edge_row[7*j+4:7*j+7] = MeetsOct[corner.Subsimplex]
       edge_matrix.append(edge_row)
  
+      # Build a row of A and a coefficient of the right hand side for
+      # each pair of adjacent 3-simplices that meet this edge.
       for i in range(len(edge.Corners) - 1):
         j = edge.Corners[i].Tetrahedron.Index
         k = edge.Corners[i+1].Tetrahedron.Index
@@ -159,18 +198,11 @@ class ClosedSurface(Surface):
           if MeetsQuad[edge.Corners[i].Subsimplex][self.Quadtypes[j]]:
             c -= self.Coefficients[j]
         constants.append(c)
-    # Correction added because linear_least_squares no longer works in LinearAlgebra,
-    # and because solve_linear_equations barfs if the system is singular.
-    # The null space of our system is spanned by the vector of all 1's, i.e.
-    # by the vertex link.  We add a row of ones to our matrix to force it
-    # to have nullity 0.  
-      eqns.append(ones(4*len(self.Manifold)))
-      constants.append(0.0)
+      # Now add the extra equations to kill off the vertex links.
+      for vertex in self.Manifold.Vertices:
+        eqns.append(vertex.IncidenceVector)
+        constants.append(0)
 
-    # This garbage is forced on us because solve_linear_equations is too dumb
-    # to work with matrices that aren't square.  We multiply both sides by
-    # the transpose of A to get a square system which, by the previous garbage,
-    # will now be nonsingular.
     A =  array(eqns)
     b =  array(constants)
     tA = transpose(A)
@@ -186,6 +218,7 @@ class ClosedSurface(Surface):
 
     for i in range(len(self.Manifold)):
       for j in range(4):
+        # A hack, since we are not doing the linear algebra over Q.
         if round ( x[4*i+j] ) - x[4*i+j] > .0000001:
           print x
           print self.Coefficients
