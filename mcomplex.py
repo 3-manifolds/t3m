@@ -17,7 +17,7 @@ from surface import Surface, SpunSurface, ClosedSurface
 from FXrays import find_Xrays
 import Numeric
 import whrandom
-import os
+import os, sys
 VERBOSE = 0
 
 # Globals needed for normal surfaces:
@@ -55,6 +55,14 @@ class Matrix:
 
      def to_list(self):
           return [ self.matrix[i*self.columns:(i+1)*self.columns].tolist()  for i in range(self.rows)]
+
+# NMD does not like using "less" for .info() methods
+
+def t3m_choose_pager():
+     if os.environ['USER'] in ('dunfield', 'nathand'):
+          return sys.stdout
+     else:
+          return os.popen('less', 'w')
 
 # An Mcomplex is a union of tetrahedra with faces identified in pairs.
 # The edges (vertices) are equivalence classes under the induced equivalence
@@ -217,7 +225,7 @@ class Mcomplex:
 #
    def info(self):
       try:
-        out = os.popen('less', 'w')
+        out = t3m_choose_pager()
         out.write( "Mcomplex with %d Tetrahedra\n\n" % len(self) )
         for tet in self.Tetrahedra:
           tet.info(out)
@@ -414,7 +422,7 @@ class Mcomplex:
 
    def normal_surface_info(self):
       try:
-         out = os.popen('less', 'w')
+         out = t3m_choose_pager()
          for surface in self.NormalSurfaces:
             out.write("-------------------------------------\n\n")
             surface.info(out)
@@ -424,7 +432,7 @@ class Mcomplex:
 
    def almost_normal_surface_info(self):
       try:
-         out = os.popen('less','w')
+         out = t3m_choose_pager()
          for surface in self.AlmostNormalSurfaces:
             out.write("-------------------------------------\n\n")
             surface.info(out)

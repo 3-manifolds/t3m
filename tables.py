@@ -11,6 +11,17 @@ from mcomplex import *
 import types
 
 
+def build_tets_from_SnapPea(SnapPeaTriangulation, fill):
+    gluing_data = SnapPeaTriangulation.get_gluing_data(fill)
+    num_tets = len(gluing_data)
+    tets = map(lambda x: Tetrahedron(), range(num_tets))
+    for i in range(num_tets):
+        neighbors, perms = gluing_data[i]
+        for k in range(4):
+            tets[i].attach(TwoSubsimplices[k], tets[neighbors[k]], perms[k])
+
+    return tets
+
 def Mcomplex_from_SnapPea(SnapPeaTriangulation):
     """
     Takes a list where the ith element represents the gluing data
@@ -22,14 +33,7 @@ def Mcomplex_from_SnapPea(SnapPeaTriangulation):
     """
     M = SnapPeaTriangulation
     fill = 1 in [M.cusp_is_fillable(i) for i in range(M.get_num_cusps())]
-    gluing_data = SnapPeaTriangulation.get_gluing_data(fill)
-    num_tets = len(gluing_data)
-    tets = map(lambda x: Tetrahedron(), range(num_tets))
-    for i in range(num_tets):
-        neighbors, perms = gluing_data[i]
-        for k in range(4):
-            tets[i].attach(TwoSubsimplices[k], tets[neighbors[k]], perms[k])
-    return Mcomplex(tets)
+    return Mcomplex(build_tets_from_SnapPea(M, fill))
 
 
 class Manifold_list:
@@ -77,5 +81,6 @@ __all__ = ('closed_orientable',
            'alternating_knot_ext',
            'nonalternating_knot_ext',
            'get_mcomplex',
-           'Mcomplex_from_SnapPea')
+           'Mcomplex_from_SnapPea',
+           'build_tets_from_SnapPea')
 

@@ -54,6 +54,11 @@ WeightVector = array([1,1,1])
 
 TypeVector = array([0,1,2]) 
 
+# Used for converting normal surface into tetrahedron edge-shift data.
+# copied from mcomplex.Shift
+
+QuadShift = ((-1,1,0), (1,0,-1), (0,-1,1))
+             
 # The format for a coefficient vector is [T0, T1, T2, T3, Q0, Q1, Q2, ...}
 
 NonInteger = 'Error'
@@ -80,6 +85,15 @@ class Surface:
       return "almost-normal"
     else:
       return "normal"
+
+  # computes and records hexagon shift of surface along
+  # the edges of each tet.  Order convention is std  (E01, E02, E12).
+
+  def add_shifts(self):
+    shifts = []
+    for i in range(len(self.Manifold)):
+        shifts += [ self.Coefficients[i] * w for w in QuadShift[self.Quadtypes[i]]]
+    self.Shifts = shifts
 
   def info(self, out = sys.stdout):
     M = self.Manifold
@@ -313,7 +327,16 @@ class ClosedSurface(Surface):
 
 #-----------------begin class SpunSurface--------------------------------------
 
+def dot_product(x,y):
+    assert len(x) == len(y)
+    dot = 0
+    for i in range(len(x)):
+        dot += x[i]*y[i]
+    return dot
+
 class SpunSurface(Surface):
-  def compute_slopes(self):
-    pass
+  def add_boundary_slope(surface, cusp_equations):
+    surface.BoundarySlope = (-dot_product(surface.Shifts, cusp_equations[1]),
+                             dot_product(surface.Shifts, cusp_equations[0]) )
+
 
