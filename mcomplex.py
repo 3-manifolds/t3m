@@ -13,7 +13,7 @@ from arrow import Arrow
 from face import Face
 from edge import Edge
 from vertex import Vertex
-from surface import Surface, SpunSurface, ClosedSurface
+from surface import Surface, SpunSurface, ClosedSurface, ClosedSurfaceInCusped
 from FXrays import find_Xrays
 import Numeric
 import whrandom

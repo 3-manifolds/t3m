@@ -1,5 +1,6 @@
 import SnapPea, t3m, sys
-
+from FXrays import find_Xrays
+from types import *
 
 # helper functions
 
@@ -60,7 +61,17 @@ def find_distinct_triangulations(M, restarts=5, moves=30):
     
 # renaming
 
-QuadShifts = (t3m.Shift[t3m.E01], t3m.Shift[t3m.E02], t3m.Shift[t3m.E03])
+QuadShift = (t3m.Shift[t3m.E01], t3m.Shift[t3m.E02], t3m.Shift[t3m.E03])
+
+
+def quad_equation_from_gluing(eqn):
+    nor_eqn = []
+    for i in range(len(eqn)/3):
+        for k in range(3):
+            nor_eqn.append( dot_product( eqn[3*i: 3*(i+1)] , QuadShift[k]))
+
+    return nor_eqn
+
 
 #---------------------------------------------------------------------
 #
@@ -69,20 +80,27 @@ QuadShifts = (t3m.Shift[t3m.E01], t3m.Shift[t3m.E02], t3m.Shift[t3m.E03])
 #--------------------------------------------------------------------
 
 # This class is an amalgam of t3m.mcomplex and SnapPea.Triangulation
-# It takes the latter to create the class.  Class is setup so that
-# calls to many SnapPea.Triangulation methods are mapped through.
-# So, e.g. OneCuspedManifold.volume() works
+# It takes the latter to create the class, or alternatively a string
+# which specifies the name of a manifold SnapPea knows about.  Class
+# is setup so that calls to many SnapPea.Triangulation methods are
+# mapped through.  So, e.g. OneCuspedManifold.volume() works
 
 class OneCuspedManifold(t3m.Mcomplex):
-    def __init__(self, SnapPea_triangulation):
-        if not SnapPea_triangulation.get_triangulation_is_orientable():
+    def __init__(self, triangulation):
+        if triangulation.__class__ == SnapPea.Triangulation:
+            manifold = triangulation
+        else:
+            manifold = SnapPea.get_manifold(triangulation)
+        
+        if not manifold.get_triangulation_is_orientable():
             raise ValueError, "Manifold must be orientable"
-        if SnapPea_triangulation.get_num_cusps() != 1:
+        if manifold.get_num_cusps() != 1:
             raise ValueError, "Manifold has more than one cusp"
 
-        tets = t3m.build_tets_from_SnapPea(SnapPea_triangulation, 0)
+        tets = t3m.build_tets_from_SnapPea(manifold, 0)
         t3m.Mcomplex.__init__(self, tets)
-        self.SnapPeaTriangulation = SnapPea_triangulation
+        self.SnapPeaTriangulation = manifold
+        self.ClosedSurfaces = []
     
     # should really disable all t3m.Mcomplex methods which
     # change the triangulation as need to keep the two reps
@@ -120,6 +138,69 @@ class OneCuspedManifold(t3m.Mcomplex):
         slopes = self.boundary_slopes()
         return [slope for slope in slopes if normalized_directed_slopes.count(slope) == 2]
 
+    def find_closed_normal_surfaces(self, modp=0):
+        for surface in self.ClosedSurfaces:
+            surface.erase()
+            self.ClosedSurfaces.remove(surface)
+        self.build_matrix()
+
+        cusp_eqns = map(quad_equation_from_gluing, self.get_cusp_equations()[0])
+        new_eqns = self.QuadMatrix.matrix.tolist() + cusp_eqns[0] + cusp_eqns[1]
+        coeff_list = find_Xrays(self.QuadMatrix.rows + 2,
+                                        self.QuadMatrix.columns,
+                                        new_eqns, modp)
+        for coeff_vector in coeff_list:
+            self.ClosedSurfaces.append(t3m.ClosedSurfaceInCusped(self, coeff_vector))
+
+    def has_non_trivial_closed_surface(self):
+        for surface in self.ClosedSurfaces:
+            if not surface.is_edge_linking_torus()[0]:
+                return 1
+
+        return 0
+                
+    def closed_normal_surface_info(self):
+        out = sys.stdout
+        for surface in self.ClosedSurfaces:
+            out.write("-------------------------------------\n\n")
+            surface.info(out)
+            out.write('\n')
+
+    # See class below for more on an angle structure.  The equations
+    # are nominally inhomongenious, with (sum angles around edge) = 2
+    # pi and (sum 3 angles in triangle) = pi.  So we add an extra
+    # dummy variable (essentially "pi") to make them homogeneous.
+
+    def build_angle_matrix(self):
+        n = len(self)
+
+        gluing_equations = self.get_gluing_equations()
+
+        angle_eqns = []
+        # these say that the angles 
+        for gluing_eqn in gluing_equations:
+            angle_eqns += (gluing_eqn + [-2])
+
+        for i in range(n):
+            tri_eqn = [0,]*(3*i) + [1,1,1] + [0,]*(3*(n - i - 1)) + [-1]
+            angle_eqns += tri_eqn
+
+        self.AngleMatrix = t3m.Matrix(len(gluing_equations) + n, 3*n + 1)
+        self.AngleMatrix.matrix = t3m.Numeric.array( angle_eqns, 'i')
+        
+    def find_angle_structures(self):
+        self.build_angle_matrix()
+        coeff_list = find_Xrays(self.AngleMatrix.rows,
+                                self.AngleMatrix.columns,
+                                self.AngleMatrix.matrix, 0)
+        print coeff_list
+        self.AngleStructures = [AngleStructure(coeff_vector) for coeff_vector in coeff_list]
+
+    def angle_structure_info(self):
+        for structure in self.AngleStructures:
+            print structure
+
+            
 # Code for adding many SnapPea.Triangulation calls to OneCuspedManifold
 
 meths = ['Dirichlet', 'core_geodesic',
@@ -144,6 +225,37 @@ for meth in meths:
             eval( "lambda self, *rest : apply( getattr(self.SnapPeaTriangulation, '" + meth + "'), rest)"))
 
 
+class AngleStructure:
+    def __init__(self, solution_vector):
+        self.Angles = solution_vector[:-1]
+        self.Pi = solution_vector[-1]
+        self.n = len(self.Angles)/3 
+
+    def format_fraction(self, top):
+        g = SnapPea.gcd(top, self.Pi)
+        if g != self.Pi:
+            return "%d/%d" % (top/g, self.Pi/g)
+        else:
+            return "%d" % (top/g)
+    
+    def __repr__(self):
+        s =  "<AngleStr: "
+        for i in range(self.n):
+            s = s + "%s %s %s; " % tuple(map(self.format_fraction, self.Angles[3*i:3*(i + 1)]))
+        return s[:-2]+" >"
+
+    # returns true if the edges opposite the quads of the given surface
+    # are 0
+    
+    def supports_surface(self, surface):
+        for i in range(self.n):
+            if self.Angles[3*i + surface.Quadtypes[i]] != 0:
+                return 0
+
+        return 1
+
+
+
 # used in next function
 
 def boundary_slopes_from_SnapPea(M):
@@ -165,19 +277,42 @@ def super_boundary_slopes_from_SnapPea(M):
     return final_slopes
     
 
+#-------------------------------------------------------------------------
+#
+#  Code for looking for small one-cusped manifolds
+#
+#-------------------------------------------------------------------------
+
+def is_small(M):
+    N = OneCuspedManifold(M)
+    N.find_closed_normal_surfaces()
+    return not N.has_non_trivial_closed_surface()
+
+def super_is_small(M):
+    tris = find_distinct_triangulations(M)
+    for T in tris:
+        if is_small(T):
+            return 1
+
+    return 0
+    
+def small_go(file, census):
+    f = open(file, "w")
+    for M in census:
+        if M.get_num_cusps() == 1:
+            if super_is_small(M):
+                f.write(M.get_name() + "\tsmall\n")
+            else:
+                f.write(M.get_name() + "\t?\n")
+            f.flush()
+
+#small_go("small2", SnapPea.Cusped5tetOrientable)
+
 #-------------------------------------------------------------------------------
 #
 #  Code for testing to make sure conventions match
 #
 #-------------------------------------------------------------------------------
-
-def quad_equation_from_gluing(eqn):
-    nor_eqn = []
-    for i in range(len(eqn)/3):
-        for k in range(3):
-            nor_eqn.append( dot_product( eqn[3*i: 3*(i+1)] , QuadShifts[k]))
-
-    return nor_eqn
             
 def normal_surface_equations_from_gluing(M):
     glueeqns =  M.get_gluing_equations()

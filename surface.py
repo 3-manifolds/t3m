@@ -340,3 +340,47 @@ class SpunSurface(Surface):
                              dot_product(surface.Shifts, cusp_equations[0]) )
 
 
+#-------------begin class ClosedSurfaceInCusped------------------------
+
+class ClosedSurfaceInCusped(ClosedSurface):
+
+  def info(self, out = sys.stdout):
+    M = self.Manifold
+    # check if really boring:
+    q, e = self.is_edge_linking_torus()
+    if q:
+      out.write("Normal surface #%d is thin linking genus-2 surface of edge %s\n"
+                %(M.ClosedSurfaces.index(self), e))
+      return
+
+    out.write("Normal surface #%d of Euler characteristic %d\n"
+                %(M.ClosedSurfaces.index(self), self.euler_characteristic()))
+    # addional message about bounding subcomplex
+    b, d, t = self.bounds_subcomplex()
+    if b == 1:
+      out.write("  Bounds %s subcomplex\n"  % t)
+    elif d == 1:
+      out.write("  Double bounds %s subcomplex\n" %t)
+    else:
+      out.write("  doesn't bound subcomplex\n")
+
+    for i in range(len(self.Manifold)):
+      quad_weight = self.Coefficients[i]
+      if quad_weight > 0:
+        weight = "  Quad Type  Q%d3, weight %d" % (self.Quadtypes[i], quad_weight)
+      else:
+        weight = "No quads"
+
+      out.write("  In tetrahedron %s :  %s\n" %
+                      (self.Manifold.Tetrahedra[i], weight))
+      out.write("\tTri weights V0: %d V1: %d V2 : %d V3 : %d\n" 
+                % (self.get_weight(i, V0), 
+                   self.get_weight(i, V1), 
+                   self.get_weight(i, V2),
+                   self.get_weight(i, V3)))
+      out.write('\n') 
+
+    for i in range(len(self.EdgeWeights)):
+      out.write("  Edge %s has weight %d\n" 
+                  % (self.Manifold.Edges[i], self.EdgeWeights[i]))
+
