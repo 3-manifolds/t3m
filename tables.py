@@ -1,5 +1,6 @@
 import SnapPea
 from mcomplex import *
+import types
 
 
 def Mcomplex_from_data(SnapPeaTriangulation):
@@ -23,9 +24,9 @@ def Mcomplex_from_data(SnapPeaTriangulation):
     return Mcomplex(tets)
 
 
-class manifold_list:
+class Manifold_list:
     """
-    A manifold_list is a subscriptable object containing Mcomplexes
+    A Manifold_list is a subscriptable object containing Mcomplexes
     which represent manifolds obtained from SnapPea triangulations.
     """
     def __init__(self, census):
@@ -38,20 +39,21 @@ class manifold_list:
         return len(self.census)
 
     def __getitem__(self, i):
-        if not (0 <= i < len(self.census)):
-            raise IndexError, "Requested manifold is out of range."
-        manifold = self.census[i]
-        return Mcomplex_from_data(manifold)    
+        if type(i) == types.SliceType:
+            return Manifold_list(self.census[i])
+        else:
+            manifold = self.census[i]
+            return Mcomplex_from_data(manifold)    
 
-closed_orientable = manifold_list( SnapPea.ClosedOrientable)
-closed_nonorientable = manifold_list( SnapPea.ClosedNonorientable)
-five_tet_cusped = manifold_list( SnapPea.Cusped5tet)
-six_tet_cusped_orientable = manifold_list( SnapPea.Cusped6tetOrientable) 
-six_tet_cusped_nonorientable = manifold_list( SnapPea.Cusped6tetNonorientable) 
-seven_tet_cusped_orientable = manifold_list( SnapPea.Cusped7tetOrientable) 
-seven_tet_cusped_nonorientable = manifold_list( SnapPea.Cusped7tetOrientable) 
-alternating_knot_ext = manifold_list(SnapPea.AlternatingKnotExteriors)
-nonalternating_knot_ext = manifold_list(SnapPea.NonalternatingKnotExteriors)
+closed_orientable = Manifold_list( SnapPea.ClosedOrientable)
+closed_nonorientable = Manifold_list( SnapPea.ClosedNonorientable)
+five_tet_cusped = Manifold_list( SnapPea.Cusped5tet)
+six_tet_cusped_orientable = Manifold_list( SnapPea.Cusped6tetOrientable) 
+six_tet_cusped_nonorientable = Manifold_list( SnapPea.Cusped6tetNonorientable) 
+seven_tet_cusped_orientable = Manifold_list( SnapPea.Cusped7tetOrientable) 
+seven_tet_cusped_nonorientable = Manifold_list( SnapPea.Cusped7tetOrientable) 
+alternating_knot_ext = Manifold_list(SnapPea.AlternatingKnotExteriors)
+nonalternating_knot_ext = Manifold_list(SnapPea.NonalternatingKnotExteriors)
 
 def get_mcomplex(name):
     return Mcomplex_from_data(SnapPea.get_manifold(name))
