@@ -1,3 +1,11 @@
+#$Id$
+#   t3m - software for studying triangulated 3-manifolds
+#   Copyright (C) 2002 Marc Culler, Nathan Dunfield and others
+#
+#   This program is distributed under the terms of the 
+#   GNU General Public License, version 2 or later, as published by
+#   the Free Software Foundation.  See the file GPL.txt for details.
+
 import SnapPea
 from mcomplex import *
 import types
