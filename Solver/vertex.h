@@ -80,8 +80,13 @@ int    test_corank(matrix_t *A, int threshold);
 int    test_corank_mod_p(matrix_t *A, int threshold);
 
 //main functions
-PyObject *   find_vertices(matrix_t *matrix, filter_list_t *filter_list);
-PyObject *   find_vertices_mod_p(matrix_t *matrix, filter_list_t *filter_list);
+PyObject *find_vertices(matrix_t *matrix, filter_list_t *filter_list,
+		    void *(*output_func)(vertex_stack_t *stack, int dimension) );
+PyObject *find_vertices_mod_p(matrix_t *matrix, filter_list_t *filter_list,
+			  void *(*output_func)(vertex_stack_t *stack, int dimension) );
+
+//testing
+void *print_vertices(vertex_stack_t *stack, int dimension);
 
 //primitives defined in mmx.c
 int    extract_matrix(matrix_t *in, int rows, support_t *support, matrix_t *out);

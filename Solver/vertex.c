@@ -3,8 +3,6 @@
 #include <errno.h>
 #include "vertex.h"
 
-static void print_vertices(vertex_stack_t *stack, int dimension);
-static PyObject *build_vertex_list(vertex_stack_t *stack, int dimension);
 static void no_memory(void);
 static void add_block(reservoir_t *reservoir);
 
@@ -52,7 +50,7 @@ static void add_block(reservoir_t *reservoir){
   
   p = (char *)(new->vertices);
   v = (vertex_t *)p;
-  for (i=0; i<BLOCKSIZE ; i++) {
+  for (i=0; i<BLOCKSIZE-1 ; i++) {
     v->next = (vertex_t *)(p += vertex_size);
     v = v->next;
   }
@@ -367,9 +365,14 @@ void *destroy_filter_list(filter_list_t *filterlist){
 // the support of the vector.
 
 int filter(vertex_t *v, filter_list_t *filter_list){
-  int size = filter_list->size;
-  support_t *filter = filter_list->filter;
+  int size;
+  support_t *filter;
   register int CS0, CS1, CS2, CS3, result;
+
+  if (filter_list == NULL)
+    return 1;
+  size = filter_list->size;
+  filter = filter_list->filter;
 
   CS0=~(v->support.supp[0]);
   CS1=~(v->support.supp[1]); 
@@ -388,7 +391,8 @@ int filter(vertex_t *v, filter_list_t *filter_list){
   return result;
 }
 
-PyObject *find_vertices(matrix_t *matrix, filter_list_t *filter_list){
+PyObject *find_vertices(matrix_t *matrix, filter_list_t *filter_list,
+                   void *(*output_func)(vertex_stack_t *stack, int dimension) ){
   PyObject *result;
   int i, x, dimension = matrix->columns, size = dimension*matrix->rows;
   int slice, filtered = 0, interior = 0;
@@ -457,7 +461,7 @@ PyObject *find_vertices(matrix_t *matrix, filter_list_t *filter_list){
 
   printf("DONE.  %d vertices were filtered;   %d were interior. \n",
 	 filtered, interior);
-  result = build_vertex_list(&current, dimension);
+  result = output_func(&current, dimension);
   recycle_vertices(&current, reservoir);
   destroy_reservoir(reservoir);
   reservoir = NULL;
@@ -465,7 +469,8 @@ PyObject *find_vertices(matrix_t *matrix, filter_list_t *filter_list){
   return result;
 }
 
-PyObject *find_vertices_mod_p(matrix_t *matrix, filter_list_t *filter_list){
+PyObject *find_vertices_mod_p(matrix_t *matrix, filter_list_t *filter_list,
+                   void *(*output_func)(vertex_stack_t *stack, int dimension) ){
   PyObject *result;
   int i, x, dimension = matrix->columns, size = dimension*matrix->rows;
   int slice, filtered = 0, interior = 0;
@@ -542,7 +547,7 @@ PyObject *find_vertices_mod_p(matrix_t *matrix, filter_list_t *filter_list){
 
   printf("DONE.  %d vertices were filtered;   %d were interior. \n",
 	 filtered, interior);
-  result = build_vertex_list(&current, dimension);
+  result = output_func(&current, dimension);
   recycle_vertices(&current, reservoir);
   destroy_reservoir(reservoir);
   reservoir = NULL;
@@ -551,9 +556,7 @@ PyObject *find_vertices_mod_p(matrix_t *matrix, filter_list_t *filter_list){
   return result;
 }
 
-
-
-static void print_vertices(vertex_stack_t *stack, int dimension){
+void *print_vertices(vertex_stack_t *stack, int dimension){
   vertex_t *V = *stack;
   int i;
 
@@ -563,22 +566,5 @@ static void print_vertices(vertex_stack_t *stack, int dimension){
       printf("%d ", V->vector[i]);
     printf("]\n");
   }
-}
-
-
-static PyObject *build_vertex_list(vertex_stack_t *stack, int dimension){
-  PyObject *result, *coeff;
-  vertex_t *V = *stack;
-  int i;
-
-  result = PyList_New(0);
-  if (result != NULL){
-    for (; V != NULL; V = V->next ) {
-      coeff = PyTuple_New(dimension);
-      for (i=0; i<dimension ; i++)
-	PyTuple_SetItem(coeff, i, PyInt_FromLong((long)V->vector[i]));
-      PyList_Append(result, coeff);
-    }
-  }
-  return result;
+  return NULL;
 }

@@ -1,6 +1,8 @@
 #include "vertex.h"
 
-matrix_t testmatrix = {10, 27, {
+int testdata[] = {
+  10, 
+  27, 
  -1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,1,0,-1,1,0,-1,1,0,
  1,0,-1,0,-1,1,0,0,0,0,0,0,-1,1,0,0,-1,1,1,0,-1,0,0,0,0,-2,2,
  0,-1,1,-1,1,0,0,0,0,0,0,0,1,0,-1,1,0,-1,0,0,0,0,0,0,1,0,-1,
@@ -11,14 +13,15 @@ matrix_t testmatrix = {10, 27, {
  0,0,0,0,0,0,-1,1,0,0,-1,1,1,0,-1,0,0,0,0,-1,1,0,0,0,1,0,-1,
  0,0,0,0,0,0,0,-1,1,-1,1,0,0,0,0,1,0,-1,0,-1,1,1,0,-1,0,0,0,
  0,0,0,0,0,0,-1,1,0,1,0,-1,0,-1,1,-1,1,0,0,0,0,-1,1,0,0,0,0
-}};
+};
 
 main(){
   filter_list_t *testfilter;
+  matrix_t *testmatrix = (matrix_t*)&testdata;
   int i;
 
-  testfilter = embedded_filter(testmatrix.columns/3);
-  find_vertices(&testmatrix, testfilter);
+  testfilter = embedded_filter(testmatrix->columns/3);
+  find_vertices(testmatrix, testfilter, print_vertices);
 
 }
 
