@@ -1,0 +1,41 @@
+Installation Instructions
+-------------------------
+
+This is a pure python module. It requires Python 2.2 or newer.  It
+also requires SnapPeaPython and FXrays, available from
+http://www.math.uic.edu/t3m
+
+If you have superuser privileges on your UNIX system:
+
+  python setup.py build
+  python setup.py install
+
+This will install t3m in the site-packages directory of your
+python installation.
+
+If are not a superuser and wish to install SnapPeaPython in your home directory:
+
+  python setup.py build
+  python setup.py install --install-lib ~
+
+This will create a subdirectory of your home directory named SnapPea
+containing the package.  In order for python to find the package you
+must add this directory to your PYTHONPATH environment variable.  For
+example:
+
+export PYTHONPATH=$PYTHONPATH:~/t3m
+
+Bugs and Comments
+-------------------------
+
+Please email bugs, comments, or offers of assistance, to either or both
+of:
+
+culler@math.uic.edu
+nathand@math.harvard.edu
+
+Last Update
+-------------------------
+
+The date of the last update is contained in the file named timestamp
+in the root directory of the distribution.
