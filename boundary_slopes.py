@@ -139,9 +139,6 @@ class OneCuspedManifold(t3m.Mcomplex):
         t3m.Mcomplex.__del__(self)
 #        print "Destroying OneCuspedManifold"
         OneCuspedManifold.Count -= 1
-
-    def clone(self):
-        return OneCuspedManifold(self.SnapPeaTriangulation)
     
     # should really disable all t3m.Mcomplex methods which
     # change the triangulation as need to keep the two reps
@@ -419,7 +416,7 @@ class AngleStructure:
 # used in next function
 
 def boundary_slopes_from_SnapPea(M):
-    N = OneCuspedManifold(M.SnapPeaTriangulation)
+    N = OneCuspedManifold(M)
     N.find_normal_surfaces()
     return N.boundary_slopes_with_trick()
 
