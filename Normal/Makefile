@@ -1,5 +1,5 @@
 #CFLAGS = -O2 -g
-CFLAGS = -O3 -march=i686 -mcpu=i686 -I/usr/local/include/python2.2
+CFLAGS = -O3 -march=i686 -mcpu=i686 -I/usr/local/include/python2.2 -I/usr/include/python2.2
 
 _normalmodule.so: _normal.o mmx.o vertex.o
 	gcc -shared -o _normalmodule.so _normal.o mmx.o vertex.o

@@ -1,7 +1,7 @@
 CFLAGS = -O2 -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations 
 PYTHON_VERSION = 2.2
 KERNEL_HEADERS = -I../headers/ -I../unix_kit/ 
-HEADERS = -Iheaders -Iunix_kit -I/usr/local/include/python$(PYTHON_VERSION)
+HEADERS = -Iheaders -Iunix_kit -I/usr/local/include/python$(PYTHON_VERSION)  -I/usr/include/python$(PYTHON_VERSION) 
 
 all: KernelObjects/BuildDate SnapPeaC.so
 
