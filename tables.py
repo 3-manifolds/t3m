@@ -11,7 +11,7 @@ from mcomplex import *
 import types
 
 
-def Mcomplex_from_data(SnapPeaTriangulation):
+def Mcomplex_from_SnapPea(SnapPeaTriangulation):
     """
     Takes a list where the ith element represents the gluing data
     for the ith tetrahedron:
@@ -51,7 +51,7 @@ class Manifold_list:
             return Manifold_list(self.census[i])
         else:
             manifold = self.census[i]
-            return Mcomplex_from_data(manifold)    
+            return Mcomplex_from_SnapPea(manifold)    
 
 closed_orientable = Manifold_list( SnapPea.ClosedOrientable)
 closed_nonorientable = Manifold_list( SnapPea.ClosedNonorientable)
@@ -64,7 +64,7 @@ alternating_knot_ext = Manifold_list(SnapPea.AlternatingKnotExteriors)
 nonalternating_knot_ext = Manifold_list(SnapPea.NonalternatingKnotExteriors)
 
 def get_mcomplex(name):
-    return Mcomplex_from_data(SnapPea.get_manifold(name))
+    return Mcomplex_from_SnapPea(SnapPea.get_manifold(name))
 
 
 __all__ = ('closed_orientable',
@@ -76,5 +76,6 @@ __all__ = ('closed_orientable',
            'seven_tet_cusped_nonorientable',
            'alternating_knot_ext',
            'nonalternating_knot_ext',
-           'get_mcomplex')
+           'get_mcomplex',
+           'Mcomplex_from_SnapPea')
 

@@ -52,6 +52,8 @@ def read_SnapPea_file(file_name):
 #
 # and creates the corresponding Mcomplex
 
+# NOTE: there _was_ a function of the same name in
+# tables.py; __all__ is set up so this one doesn't export.
 
 def Mcomplex_from_data(fake_tets):
     num_tets = len(fake_tets)
@@ -180,3 +182,8 @@ def write_geo_file(mcomplex, file_name):
 
 
 
+__all__  = ('read_SnapPea_file',
+            'write_SnapPea_file',
+            'read_geo_file',
+            'write_geo_file'
+            )
