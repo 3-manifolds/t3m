@@ -48,6 +48,8 @@ six_tet_cusped_orientable = manifold_list( SnapPea.CuspedCensus(6))
 six_tet_cusped_nonorientable = manifold_list( SnapPea.CuspedCensus(6,'n')) 
 seven_tet_cusped_orientable = manifold_list( SnapPea.CuspedCensus(7)) 
 seven_tet_cusped_nonorientable = manifold_list( SnapPea.CuspedCensus(7,'n')) 
+alternating_knot_ext = manifold_list(SnapPea.AlternatingKnotExteriors)
+nonalternating_knot_ext = manifold_list(SnapPea.NonalternatingKnotExteriors)
 
 def get_manifold(name):
     return Mcomplex_from_data(SnapPea.get_manifold(name))
