@@ -47,113 +47,94 @@ int ax_plus_by(int size, int a, int b, int *x, int *y){
 // overflows a 32 bit integer.
 
 int dot(int size, int *x, int *y, int *dotprod){
-  int result = 0;
-  
-  if (size != 0)
-    asm volatile ("
-        movd  %%eax, %%mm3   ;
-        xorl  %%eax, %%eax   ;
-        pxor  %%mm0, %%mm0   ;
-        pxor  %%mm1, %%mm1   ;
-        xorl  %%esi, %%esi   ;
-        dotloop:
-        movl  (%%ebx), %%eax ;
-        imull (%%ecx)        ;
-        addl  $0x4, %%ebx    ;
-        addl  $0x4, %%ecx    ;
-        movd  %%edx, %%mm2   ;
-        movd  %%mm0, %%edx   ;
-        addl  %%edx, %%eax   ;
-        movd  %%eax, %%mm0   ;
-        movd  %%mm1, %%eax   ;
-        movd  %%mm2, %%edx   ;
-        adcl  %%edx, %%eax   ;
-        movd  %%eax, %%mm1   ;
-        addl  $1, %%eax      ;
-        shrl  $1, %%eax      ;
-        or    %%eax, %%esi   ;
-        decl  %%edi          ;
-        jnz    dotloop       ;
-        movd  %%mm3, %%eax   ;
-        movd  %%mm0, (%%eax) ;
-        movl  %%esi, %%eax   ;
-        emms ;"
-	:"=a"(result) 
-	:"D"(size),"b"(x),"c"(y),"a"(dotprod)
-	:"%esi","%edx"
-	);
+  register int result = 0;
+  register int *X = x, *Y = y;
+  register long long accumulator = 0;
+  while (size--){
+    accumulator += ((long long)*X++)*((long long)*Y++);
+    result |= (((accumulator >> 32) + 1) >> 1);
+  }
+  *dotprod = accumulator & 0xffffffff;
   return result;
 }
 
-// WARNING: This may write one int past the end of the array.  Allow extra
-// space in your matrix.
-// To avoid unpredictable branching, we just overwrite each of the columns that
-// corresponds to a 0 in the support vector.  
+// This extracts those columns of the input matrix specified by the
+// support vector.  If dimension considerations show that the the
+// resulting matrix could not possibly have co-rank 1, the extraction
+// is aborted and 0 is returned (leaving garbage in the output
+// matrix). Otherwise the return value is 1.
+//
+// WARNING: This may write one int past the end of the array.  Allow
+// extra space in your output matrix!!!
+//
+// To avoid unpredictable branching, we just overwrite each of the
+// columns that corresponds to a 0 in the support vector.
 
 int extract_matrix(matrix_t *in, int rows, support_t *support, matrix_t *out) {
-  int columns;
-  int *in_coeff = in->matrix;
-  int *out_coeff = out->matrix;
-  int columns_out = 0;
+  register int *in_coeff = in->matrix;
+  register int *out_coeff = out->matrix;
+  register int supp1, supp2, temp;
+  int count1, count2, count, columns_out = 0;
+
+  if (in->columns > 64){
+    count1 = 64;
+    count2 = in->columns - 64;
+  }
+  else{
+    count1 = in->columns;
+    count2 = 0;
+  }
 
   out->rows = rows;
-  columns = in->columns;
-  asm volatile ("
-        movq    (%%esi), %%mm0;
-        movq    %%mm0, %%mm2
-        movq    0x8(%%esi), %%mm1;
-        movq    %%mm1, %%mm3;
-        firstrow:
-        movl    (%%ebx), %%esi;
-        movl    %%esi, (%%ecx);
-        movd    %%mm0, %%esi;
-        addl    $4, %%ebx;
-        psrlq   $1, %%mm0;
-        movq    %%mm0, %%mm4;
-        movq    %%mm1, %%mm0;
-        movq    %%mm4, %%mm1;
-        andl    $1, %%esi;
-        addl    %%esi, %%eax;
-        addl    %%esi, %%esi;
-        addl    %%esi, %%esi;
-        addl    %%esi, %%ecx;
-        decl    %%edi;
-        jnz     firstrow;"
-	:"=a"(columns_out),"=S"(support),"=D"(columns),"=b"(in_coeff),"=c"(out_coeff)
-	:"a"(columns_out),"S"(support),"D"(columns),"b"(in_coeff),"c"(out_coeff)
-	);
+  // We have to look at the first row to count how many columns the
+  // output matrix will have.
+  supp1 = support->supp[0];
+  supp2 = support->supp[2];
+  count = count1;
+  while (count--){
+    *out_coeff = *in_coeff++;
+    out_coeff += (supp1 & 0x1);
+    temp = supp1 >> 1;
+    supp1 = supp2;
+    supp2 = temp;
+  }
+  supp1 = support->supp[1];
+  supp2 = support->supp[3];
+  count = count2;
+  while (count--){
+    *out_coeff = *in_coeff++;
+    out_coeff += (supp1 & 0x1);
+    temp = supp1 >> 1;
+    supp1 = supp2;
+    supp2 = temp;
+  }
+  columns_out = out_coeff - out->matrix;
+  // Bail out if there aren't enough rows to have co-rank 1.
   if (rows < columns_out - 1)
     return 0;
   out->columns = columns_out;
-  columns = in->columns;
-  if (--rows)
-    asm volatile ("
-        nextrow:
-        movq    %%mm2, %%mm0;
-        movq    %%mm3, %%mm1;
-        movl    %%edi, %%edx;
-        rowloop:
-        movl    (%%ebx), %%esi;
-        movl    %%esi, (%%ecx);
-        movd    %%mm0, %%esi;
-        addl    $4, %%ebx;
-        psrlq   $1, %%mm0;
-        movq    %%mm0, %%mm4;
-        movq    %%mm1, %%mm0;
-        movq    %%mm4, %%mm1;
-        andl    $1, %%esi;
-        addl    %%esi, %%esi;
-        addl    %%esi, %%esi
-        addl    %%esi, %%ecx;
-        decl    %%edi;
-        jnz     rowloop;
-        movl    %%edx, %%edi;
-        decl    %%eax;
-        jnz     nextrow;
-        emms ;"
-	:
-	:"a"(rows),"S"(support),"D"(columns),"b"(in_coeff),"c"(out_coeff)
-        :"%edx"
-	);
+  // Otherwise extract the rest of the rows.
+  while (--rows) {
+    supp1 = support->supp[0];
+    supp2 = support->supp[2];
+    count = count1;
+    while (count--){
+      *out_coeff = *in_coeff++;
+      out_coeff += (supp1 & 0x1);
+      temp = supp1 >> 1;
+      supp1 = supp2;
+      supp2 = temp;
+    }
+    supp1 = support->supp[1];
+    supp2 = support->supp[3];
+    count = count2;
+    while (count--){
+      *out_coeff = *in_coeff++;
+      out_coeff += (supp1 & 0x1);
+      temp = supp1 >> 1;
+      supp1 = supp2;
+      supp2 = temp;
+    }
+  }
   return 1;
 }
