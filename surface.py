@@ -55,13 +55,17 @@ WeightVector = array([1,1,1])
 TypeVector = array([0,1,2]) 
 
 # Used for converting normal surface into tetrahedron edge-shift data.
-# copied from mcomplex.Shift
+# QuadShift[k] is the shifts induced by quad Qk3 along edges (E03, E13, E23).
+# Note that this follows the convention that the order of the edges
+# is the same as the order of the quads, and _not_ in order E01, E02, E03.
 
-QuadShift = ((-1,1,0), (1,0,-1), (0,-1,1))
-             
+QuadShifts = ((0, 1, -1), (-1, 0, 1), (1, -1, 0))
+
 # The format for a coefficient vector is [T0, T1, T2, T3, Q0, Q1, Q2, ...}
 
 NonInteger = 'Error'
+
+# NOTE: The convention is that the order of the quads is (Q03, Q13, Q23)
 
 class Surface:
   Count = 0
@@ -87,12 +91,14 @@ class Surface:
       return "normal"
 
   # computes and records hexagon shift of surface along
-  # the edges of each tet.  Order convention is std  (E01, E02, E12).
+  # the edges of each tet.  Order convention of edges in
+  # each tet is (E03, E13, E23) the same as the standard
+  # order of the quads, and _not_ (E01, E02, E03).
 
   def add_shifts(self):
     shifts = []
     for i in range(len(self.Manifold)):
-        shifts += [ self.Coefficients[i] * w for w in QuadShift[self.Quadtypes[i]]]
+        shifts += [ self.Coefficients[i] * w for w in QuadShifts[self.Quadtypes[i]]]
     self.Shifts = shifts
 
   def info(self, out = sys.stdout):
@@ -335,26 +341,46 @@ def dot_product(x,y):
     return dot
 
 class SpunSurface(Surface):
+
+  def __init__(self, manifold, quadvector):
+    Surface.__init__(self, manifold, quadvector)
+    self.Incompressible = None
+    self.BoundarySlope = None
+  
   def add_boundary_slope(surface, cusp_equations):
     surface.BoundarySlope = (-dot_product(surface.Shifts, cusp_equations[1]),
                              dot_product(surface.Shifts, cusp_equations[0]) )
+
+  def info(self, out = sys.stdout):
+    M = self.Manifold
+    out.write("SpunSurface: Slope %s;  Incompressible %s\n" % (self.BoundarySlope, self.Incompressible))
+    for i in range(len(M)):
+      quad_weight = self.Coefficients[i]
+      if quad_weight > 0:
+        weight = "  Tet %i: Quad Type  Q%d3, weight %d" % (i, self.Quadtypes[i], quad_weight)
+      else:
+        weight = "   Tet %i: no quads"
+      out.write(weight  + "\n")
 
 
 #-------------begin class ClosedSurfaceInCusped------------------------
 
 class ClosedSurfaceInCusped(ClosedSurface):
+  def __init__(self, manifold, quadvector):
+    ClosedSurface.__init__(self, manifold, quadvector)
+    self.Incompressible = None
+    self.BoundarySlope = None
+  
 
   def info(self, out = sys.stdout):
     M = self.Manifold
+    out.write("ClosedSurfaceInCusped #%d:  Euler %d;  Incompressible %s\n" % (M.ClosedSurfaces.index(self), self.euler_characteristic(), self.Incompressible))
     # check if really boring:
     q, e = self.is_edge_linking_torus()
     if q:
-      out.write("Normal surface #%d is thin linking genus-2 surface of edge %s\n"
-                %(M.ClosedSurfaces.index(self), e))
+      out.write("    is thin linking surface of edge %s\n" % e)
       return
 
-    out.write("Normal surface #%d of Euler characteristic %d\n"
-                %(M.ClosedSurfaces.index(self), self.euler_characteristic()))
     # addional message about bounding subcomplex
     b, d, t = self.bounds_subcomplex()
     if b == 1:
@@ -362,7 +388,7 @@ class ClosedSurfaceInCusped(ClosedSurface):
     elif d == 1:
       out.write("  Double bounds %s subcomplex\n" %t)
     else:
-      out.write("  doesn't bound subcomplex\n")
+      out.write("  Doesn't bound subcomplex\n")
 
     for i in range(len(self.Manifold)):
       quad_weight = self.Coefficients[i]
@@ -371,7 +397,7 @@ class ClosedSurfaceInCusped(ClosedSurface):
       else:
         weight = "No quads"
 
-      out.write("  In tetrahedron %s :  %s\n" %
+      out.write("  In tet %s :  %s\n" %
                       (self.Manifold.Tetrahedra[i], weight))
       out.write("\tTri weights V0: %d V1: %d V2 : %d V3 : %d\n" 
                 % (self.get_weight(i, V0), 

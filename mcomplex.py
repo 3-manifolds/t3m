@@ -21,11 +21,20 @@ import os, sys
 VERBOSE = 0
 
 # Globals needed for normal surfaces:
+
 # The height shift dictionaries for the three quad types.
+# Shift[ tet edge ] is a tuple of the shifts of the three quad
+# types (Q03, Q13, Q23) along that edge.
+#
+# That is the first entry E01:(-1, 1, 0) means that Q03 shifts
+# by -1 along E01, Q13 shifts by +1 along E01 and Q23 doesn't
+# shift.
+
 Shift = {E01:(-1,1,0), E02:(1,0,-1), E21:(0,-1,1),
          E32:(-1,1,0), E31:(1,0,-1), E03:(0,-1,1)}
 
 # The solution vector templates for the four vertex types.
+
 VertexVector = {V0:(1,0,0,0), V1:(0,1,0,0),
                 V2:(0,0,1,0), V3:(0,0,0,1)}
 
@@ -382,6 +391,8 @@ class Mcomplex:
          self.walk_and_orient(tet.Neighbor[ssimp], tet.Gluing[ssimp].sign())
 
 # Normal Surfaces
+#
+#  NOTE:  convention is that the ordered quads are (Q03, Q13, Q23).
 
    def build_matrix(self):
       int_edges = [edge for edge in self.Edges if edge.IntOrBdry == 'int']

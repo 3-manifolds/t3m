@@ -1,6 +1,8 @@
 import SnapPea, t3m, sys
 from FXrays import find_Xrays
 from types import *
+import random
+
 
 # helper functions
 
@@ -23,12 +25,14 @@ def unique(list):
     ans += sorted_list[-1:]
     return ans
 
-def is_contained_in(X, Y):
+def is_subset(X, Y):
     for x in X:
         if Y.count(x) == 0:
             return 0
     return 1
 
+def union(X, Y):
+    return unique(X + Y)
 
 def weak_normalize_slope( slope ):
     a, b = slope
@@ -48,7 +52,7 @@ def normalize_slope( slope ):
         b = -b
     return (a,b)
 
-def find_distinct_triangulations(M, restarts=5, moves=30):
+def find_distinct_triangulations(M, restarts=5, moves=40):
     tris = [M.clone()]
     for i in range(restarts):
         N = M.clone()
@@ -59,19 +63,36 @@ def find_distinct_triangulations(M, restarts=5, moves=30):
 
     return tris
     
-# renaming
+# Used for converting normal surface into tetrahedron edge-shift data.
+# QuadShift[k] is the shifts induced by quad Qk3 along edges (E03, E13, E23).
+# Note that this follows the convention that the order of the edges
+# is the same as the order of the quads, and _not_ in order E01, E02, E03.
+#
+# Note: this also exists in surface.py and had better be identical there.
 
-QuadShift = (t3m.Shift[t3m.E01], t3m.Shift[t3m.E02], t3m.Shift[t3m.E03])
+QuadShifts = ((0, 1, -1), (-1, 0, 1), (1, -1, 0))
 
 
 def quad_equation_from_gluing(eqn):
     nor_eqn = []
     for i in range(len(eqn)/3):
         for k in range(3):
-            nor_eqn.append( dot_product( eqn[3*i: 3*(i+1)] , QuadShift[k]))
+            nor_eqn.append( dot_product( eqn[3*i: 3*(i+1)] , QuadShifts[k]))
 
     return nor_eqn
 
+#  SnapPea uses a diffent convention for the order of its quads than
+#  t3m does.  In particular SnapPea is (Q23, Q13, Q03), the exact
+#  reverse of t3m.
+
+def convert_quads_SnapPea_to_t3m(eqn):
+    assert len(eqn) % 3 == 0
+    new_eqn = []
+    for i in range(len(eqn)/ 3):
+        new_eqn += [eqn[3*i + 2], eqn[3*i + 1], eqn[3*i]]
+    return new_eqn
+    
+        
 
 #---------------------------------------------------------------------
 #
@@ -95,13 +116,18 @@ class OneCuspedManifold(t3m.Mcomplex):
         if not manifold.get_triangulation_is_orientable():
             raise ValueError, "Manifold must be orientable"
         if manifold.get_num_cusps() != 1:
-            raise ValueError, "Manifold has more than one cusp"
+            raise ValueError, "Manifold does not have one cusp"
 
         tets = t3m.build_tets_from_SnapPea(manifold, 0)
         t3m.Mcomplex.__init__(self, tets)
         self.SnapPeaTriangulation = manifold
         self.ClosedSurfaces = []
-    
+        self.AngleStructures = []
+
+        # finally set cusp equations
+
+        self.CuspEquations = map(convert_quads_SnapPea_to_t3m, manifold.get_cusp_equations()[0])
+        
     # should really disable all t3m.Mcomplex methods which
     # change the triangulation as need to keep the two reps
     # in sync.
@@ -113,16 +139,16 @@ class OneCuspedManifold(t3m.Mcomplex):
 
     def find_normal_surfaces(self, modp=0):
         t3m.Mcomplex.find_normal_surfaces(self, modp)
-        cusp_eqns = self.get_cusp_equations()[0]
         for S in self.NormalSurfaces:
             S.add_shifts()
-            S.add_boundary_slope(cusp_eqns)
+            S.add_boundary_slope(self.CuspEquations)
 
     # takes the boundary slopes of the given surfaces,
     # normalizes them, and removes duplicates.
 
-    def boundary_slopes(self):
-        surfaces = self.NormalSurfaces
+    def boundary_slopes(self, surfaces=None):
+        if surfaces == None:
+            surfaces = self.NormalSurfaces
         slopes = unique(map(normalize_slope,[surface.BoundarySlope for surface in surfaces]))
         if (0,0) in slopes:
             slopes.remove( (0,0))
@@ -138,13 +164,16 @@ class OneCuspedManifold(t3m.Mcomplex):
         slopes = self.boundary_slopes()
         return [slope for slope in slopes if normalized_directed_slopes.count(slope) == 2]
 
+    def incompressible_slopes(self):
+        return self.boundary_slopes([S for S in self.NormalSurfaces if S.Incompressible == 1])
+    
     def find_closed_normal_surfaces(self, modp=0):
         for surface in self.ClosedSurfaces:
             surface.erase()
             self.ClosedSurfaces.remove(surface)
         self.build_matrix()
 
-        cusp_eqns = map(quad_equation_from_gluing, self.get_cusp_equations()[0])
+        cusp_eqns = map(quad_equation_from_gluing, self.CuspEquations)
         new_eqns = self.QuadMatrix.matrix.tolist() + cusp_eqns[0] + cusp_eqns[1]
         coeff_list = find_Xrays(self.QuadMatrix.rows + 2,
                                         self.QuadMatrix.columns,
@@ -152,13 +181,16 @@ class OneCuspedManifold(t3m.Mcomplex):
         for coeff_vector in coeff_list:
             self.ClosedSurfaces.append(t3m.ClosedSurfaceInCusped(self, coeff_vector))
 
-    def has_non_trivial_closed_surface(self):
+    def  all_closed_surfaces_edge_linking(self):
         for surface in self.ClosedSurfaces:
             if not surface.is_edge_linking_torus()[0]:
-                return 1
+                return 0
 
-        return 0
-                
+        return 1
+
+    def has_incompressible_closed_surface(self):
+        return 1 in [S.Incompressible for S in self.ClosedSurfaces]
+
     def closed_normal_surface_info(self):
         out = sys.stdout
         for surface in self.ClosedSurfaces:
@@ -174,7 +206,11 @@ class OneCuspedManifold(t3m.Mcomplex):
     def build_angle_matrix(self):
         n = len(self)
 
-        gluing_equations = self.get_gluing_equations()
+        # should really compute these directly from
+        # the t3m representation.
+        
+        gluing_equations = map(convert_quads_SnapPea_to_t3m,
+                               self.SnapPeaTriangulation.get_gluing_equations())
 
         angle_eqns = []
         # these say that the angles 
@@ -193,24 +229,43 @@ class OneCuspedManifold(t3m.Mcomplex):
         coeff_list = find_Xrays(self.AngleMatrix.rows,
                                 self.AngleMatrix.columns,
                                 self.AngleMatrix.matrix, 0)
-        print coeff_list
         self.AngleStructures = [AngleStructure(coeff_vector) for coeff_vector in coeff_list]
 
     def angle_structure_info(self):
         for structure in self.AngleStructures:
             print structure
 
-            
+    def mark_incompressible(self):
+        for surfaces in (self.NormalSurfaces, self.ClosedSurfaces):
+            for S in surfaces:
+                for A in self.AngleStructures:
+                    if A.supports_surface(S):
+                        assert S.Incompressible != 0
+                        S.Incompressible = 1
+                        break
+
+        for S in self.ClosedSurfaces:
+            if S.is_edge_linking_torus()[0]:
+                assert S.Incompressible == None
+                S.Incompressible = 0
+
+
+    def find_all(self):
+        self.find_normal_surfaces()
+        self.find_closed_normal_surfaces()
+        self.find_angle_structures()
+        self.mark_incompressible()
+        
+    
 # Code for adding many SnapPea.Triangulation calls to OneCuspedManifold
 
 meths = ['Dirichlet', 'core_geodesic',
              'current_fillings_become_meridians', 'cusp_is_fillable',
-             'fill_cusp', 'fundamental_group',
-             'get_cusp_equation', 'get_cusp_equations', 'get_cusp_is_complete',
+             'fill_cusp', 'fundamental_group',  'get_cusp_is_complete',
              'get_cusp_is_orientable', 'get_cusp_l', 'get_cusp_m',
              'get_cusp_moduli', 'get_cusp_modulus', 'get_cusp_shape',
              'get_cusp_shapes', 'get_drillable_curves', 'get_gluing_data',
-             'get_gluing_equations', 'get_name', 'get_num_cusps',
+             'get_name', 'get_num_cusps',
              'get_num_tetrahedra', 'get_solution_type',
              'get_triangulation_is_orientable', 'homology',
              'is_canonical_triangulation',
@@ -277,6 +332,64 @@ def super_boundary_slopes_from_SnapPea(M):
     return final_slopes
     
 
+#------------------------------------------------------------------------
+#
+#  Code for trying to find out as much about the manifold as possible
+#
+#------------------------------------------------------------------------
+
+class OneCuspedData:
+    def __init__(self, name):
+        self.Name = name
+        self.IncompSlopesSubset = None
+        self.IncompSlopesSuperset = None
+        self.SmallOrLarge = "?"   # should be one of "small", "?", or "large"
+
+    def update_slopes_subset(self, slopes):
+        if self.IncompSlopesSubset == None:
+            self.IncompSlopesSubset = slopes
+        else:
+            self.IncompSlopesSubset = union(self.IncompSlopesSubset, slopes)
+
+    def update_slopes_superset(self, slopes):
+        if self.IncompSlopesSuperset == None:
+            self.IncompSlopesSuperset = slopes
+        else:
+            self.IncompSlopesSuperset = [ s for s in self.IncompSlopesSuperset if s in slopes]
+
+    def update_small_or_large(self, change):
+        assert change in ("small", "?", "large")
+        if change == "small":
+            assert self.SmallOrLarge != "large"
+        elif change == "large":
+            assert self.SmallOrLarge != "small"
+
+        self.SmallOrLarge = change
+
+    def __repr__(self):
+        return  self.Name + "\t" + repr(self.IncompSlopesSubset) + "\t" + repr(self.IncompSlopesSuperset) + "\t" + self.SmallOrLarge
+
+def super_surfaces_in_SnapPea(M):
+    data = OneCuspedData(M.get_name())
+    tris = find_distinct_triangulations(M)
+
+    for T in tris:
+        N = OneCuspedManifold(T)
+        N.find_all()
+
+        data.update_slopes_subset(N.incompressible_slopes())
+        data.update_slopes_superset(N.boundary_slopes_with_trick())
+        if N.all_closed_surfaces_edge_linking():
+            data.update_small_or_large("small")
+        if N.has_incompressible_closed_surface():
+            data.update_small_or_large("large")
+
+    return data
+
+            
+
+    
+
 #-------------------------------------------------------------------------
 #
 #  Code for looking for small one-cusped manifolds
@@ -313,10 +426,11 @@ def small_go(file, census):
 #  Code for testing to make sure conventions match
 #
 #-------------------------------------------------------------------------------
-            
+
 def normal_surface_equations_from_gluing(M):
     glueeqns =  M.get_gluing_equations()
-    return [quad_equation_from_gluing(eqn) for eqn in glueeqns]
+    return [quad_equation_from_gluing(convert_quads_SnapPea_to_t3m(eqn))
+            for eqn in glueeqns]
     
     
 def check_equations(M):
@@ -327,6 +441,10 @@ def check_equations(M):
     N.build_matrix()
     t3meqn = N.QuadMatrix.to_list()
     t3meqn.sort()
+
+    #print snapeqn
+    #print
+    #print t3meqn
     
     return snapeqn == t3meqn
 
@@ -354,17 +472,43 @@ def check_against_old_mathematica_prog2(file_name="/Users/dunfield/work/work/old
         name, slopes= line.split("\t")
         os = list(eval(slopes))
         os.sort()
-        M = SnapPea.get_manifold(name)
-        N = spun_surfaces_from_SnapPea(M)
-        bs = boundary_slopes(N.NormalSurfaces)
+        N = OneCuspedManifold(name)
+        N.find_normal_surfaces()
+        bs = N.boundary_slopes()
         print name
-        if not is_contained_in(bs, os):
+        if not is_subset(bs, os):
             print "WUGGA!!!!!"
             print os
             print bs
         sys.stdout.flush()
 
+#check_against_old_mathematica_prog2()
 
+# check SnapPea gluing conventions
+
+def evaluate_equation(eqn, edge_params):
+    z = 1
+    for i in range(len(eqn)):
+        z = z*(edge_params[i]**eqn[i])
+    return z
+
+                      
+def test_gluing_equations(M):
+    shapes = M.tet_shapes(1)
+    edge_param = []
+    for z in [shape["shape rect"] for shape in shapes]:
+        edge_param += [z, 1/(1-z), (z-1)/z]
+
+    for eqn in M.get_gluing_equations():
+        print evaluate_equation(eqn, edge_param)
+
+    print "cusp"
+
+    for eqn in M.get_cusp_equations()[0]:
+        print evaluate_equation(eqn, edge_param)
+        
+            
+    
     
 
     
