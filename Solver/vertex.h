@@ -1,6 +1,5 @@
 #ifndef VERTEX_H
 #define VERTEX_H
-#include "Python.h"
 
 #define PRIME ((unsigned int)0x7fffffff)
 #define BLOCKSIZE 1000
@@ -80,9 +79,9 @@ int    test_corank(matrix_t *A, int threshold);
 int    test_corank_mod_p(matrix_t *A, int threshold);
 
 //main functions
-PyObject *find_vertices(matrix_t *matrix, filter_list_t *filter_list,
+void *find_vertices(matrix_t *matrix, filter_list_t *filter_list,
 		    void *(*output_func)(vertex_stack_t *stack, int dimension) );
-PyObject *find_vertices_mod_p(matrix_t *matrix, filter_list_t *filter_list,
+void *find_vertices_mod_p(matrix_t *matrix, filter_list_t *filter_list,
 			  void *(*output_func)(vertex_stack_t *stack, int dimension) );
 
 //testing

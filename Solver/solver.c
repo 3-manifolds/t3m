@@ -60,9 +60,9 @@ static PyObject *t3m_find_vertices(PyObject *self, PyObject *args, PyObject *key
       }
 
     if (modp)
-      result = find_vertices_mod_p(matrix, filter, build_vertex_list);
+      result = (PyObject*)find_vertices_mod_p(matrix, filter, build_vertex_list);
     else
-      result = find_vertices(matrix, filter, build_vertex_list);
+      result = (PyObject*)find_vertices(matrix, filter, build_vertex_list);
     if (filter)
       destroy_filter_list(filter);
     destroy_matrix(matrix);

@@ -391,9 +391,9 @@ int filter(vertex_t *v, filter_list_t *filter_list){
   return result;
 }
 
-PyObject *find_vertices(matrix_t *matrix, filter_list_t *filter_list,
+void *find_vertices(matrix_t *matrix, filter_list_t *filter_list,
                    void *(*output_func)(vertex_stack_t *stack, int dimension) ){
-  PyObject *result;
+  void *result;
   int i, x, dimension = matrix->columns, size = dimension*matrix->rows;
   int slice, filtered = 0, interior = 0;
   int numpos, numneg, numzero;
@@ -469,9 +469,9 @@ PyObject *find_vertices(matrix_t *matrix, filter_list_t *filter_list,
   return result;
 }
 
-PyObject *find_vertices_mod_p(matrix_t *matrix, filter_list_t *filter_list,
+void *find_vertices_mod_p(matrix_t *matrix, filter_list_t *filter_list,
                    void *(*output_func)(vertex_stack_t *stack, int dimension) ){
-  PyObject *result;
+  void *result;
   int i, x, dimension = matrix->columns, size = dimension*matrix->rows;
   int slice, filtered = 0, interior = 0;
   int numpos, numneg, numzero;

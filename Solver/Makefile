@@ -4,8 +4,8 @@
 CFLAGS = -O3 -funroll-loops -I/usr/local/include/python2.2 -I/usr/include/python2.2 
 MMX = no_mmx.o
 
-CC = gcc-3.2
-#CC = gcc
+#CC = gcc-3.2
+CC = gcc
 
 solvermodule.so: solver.o $(MMX) vertex.o
 	$(CC) -shared -o solvermodule.so solver.o $(MMX) vertex.o
