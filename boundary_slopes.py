@@ -178,9 +178,7 @@ class OneCuspedManifold(t3m.Mcomplex):
         return self.boundary_slopes([S for S in self.NormalSurfaces if S.Incompressible == 1])
     
     def find_closed_normal_surfaces(self, modp=0):
-        for surface in self.ClosedSurfaces:
-            surface.erase()
-            self.ClosedSurfaces.remove(surface)
+        self.ClosedSurfaces = []
         self.build_matrix()
 
         cusp_eqns = map(quad_equation_from_gluing, self.CuspEquations)

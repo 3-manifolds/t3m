@@ -416,9 +416,7 @@ class Mcomplex:
             vertex.IncidenceVector[4*j:4*j+4] += VertexVector[corner.Subsimplex]
 
    def find_normal_surfaces(self, modp=0):
-      for surface in self.NormalSurfaces:
-         surface.erase()
-         self.NormalSurfaces.remove(surface)
+      self.NormalSurfaces = []
       self.build_matrix()
       coeff_list = find_Xrays(self.QuadMatrix.rows,
                                         self.QuadMatrix.columns,
