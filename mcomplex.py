@@ -1,13 +1,46 @@
 #$Id$
 from simplex import *
-from tetrahedron import *
-from corner import *
-from arrow import *
-from edge import *
-from vertex import *
+from tetrahedron import Tetrahedron
+from corner import Corner
+from arrow import Arrow
+from edge import Edge
+from vertex import Vertex
+from surface import Surface
+from Solver import solver
+import Numeric
 import whrandom
 import os
 VERBOSE = 0
+
+# Globals needed for normal surfaces:
+# The height shift dictionaries for the three quad types.
+Shift = {E01:(-1,1,0), E02:(1,0,-1), E21:(0,-1,1),
+         E32:(-1,1,0), E31:(1,0,-1), E03:(0,-1,1)}
+
+# The solution vector templates for the four vertex types.
+VertexVector = {V0:(1,0,0,0), V1:(0,1,0,0),
+                V2:(0,0,1,0), V3:(0,0,0,1)}
+
+class Matrix:
+
+     def __init__(self, rows, columns):
+          self.rows = rows
+          self.columns = columns
+          self.matrix = Numeric.array(rows*columns*[0], 'i') 
+
+     def __setitem__(self, ij, value):
+          i, j = ij
+          self.matrix[i*self.columns + j] = value
+
+     def __getitem__(self, ij):
+          i, j = ij
+          return self.matrix[i*self.columns + j]
+
+     def __repr__(self):
+          result = ''
+          for i in range(self.rows):
+            result += repr(self.matrix[i*self.columns:(i+1)*self.columns].tolist())+'\n'
+          return result
 
 # An Mcomplex is a union of tetrahedra with faces identified in pairs.
 # The edges (vertices) are equivalence classes under the induced equivalence
@@ -20,10 +53,11 @@ class Mcomplex:
    Count = 0
 
    def __init__(self, tetrahedron_list):
-     Mcomplex.Count = Mcomplex.Count + 1
      self.Tetrahedra = tetrahedron_list
-     self.Edges        = []
-     self.Vertices     = []
+     self.Edges                = []
+     self.Vertices             = []
+     self.NormalSurfaces       = []
+     self.AlmostNormalSurfaces = []
      self.build()
 
    def __del__(self):
@@ -287,6 +321,59 @@ class Mcomplex:
      for ssimp in TwoSubsimplices:
        if not tet.Neighbor[ssimp] == None:  
          self.walk_and_orient(tet.Neighbor[ssimp], tet.Gluing[ssimp].sign())
+
+# Normal Surfaces
+
+   def build_matrix(self):
+      int_edges = [edge for edge in self.Edges if edge.IntOrBdry == 'int']
+      self.QuadMatrix = Matrix(len(int_edges), 3*len(self))
+      for edge in int_edges:
+         for corner in edge.Corners:
+            i = int_edges.index(edge)
+            j = corner.Tetrahedron.Index
+            for k in range(3):
+               self.QuadMatrix[i,3*j+k] += Shift[corner.Subsimplex][k]
+      self.build_vertex_incidences()
+
+   def build_vertex_incidences(self):
+      for vertex in self.Vertices:
+         vertex.IncidenceVector = Numeric.zeros( 4*len(self) )
+         for corner in vertex.Corners:
+            j = corner.Tetrahedron.Index
+            vertex.IncidenceVector[4*j:4*j+4] += VertexVector[corner.Subsimplex]
+
+   def find_normal_surfaces(self, modp=0):
+      for surface in self.NormalSurfaces:
+         surface.erase()
+         self.NormalSurfaces.remove(surface)
+      self.build_matrix()
+      coeff_list = solver.find_vertices(self.QuadMatrix.rows,
+                                        self.QuadMatrix.columns,
+                                        self.QuadMatrix.matrix, modp)
+      for coeff_vector in coeff_list:
+         self.NormalSurfaces.append(Surface(self, coeff_vector))
+
+# We need find_almost_normal_surfaces()
+
+   def normal_surface_info(self):
+      try:
+         out = os.popen('less', 'w')
+         for surface in self.NormalSurfaces:
+            out.write("-------------------------------------\n\n")
+            surface.info(out)
+            out.write('\n')
+      except IOError:
+         pass
+
+   def almost_normal_surface_info(self):
+      try:
+         out = os.popen('less','w')
+         for surface in self.AlmostNormalSurfaces:
+            out.write("-------------------------------------\n\n")
+            surface.info(out)
+            out.write('\n')
+      except IOError:
+         pass
 
 #
 # Simplification Moves
@@ -795,4 +882,3 @@ class Mcomplex:
 
       return (top_arrows, bottom_arrows)
       
-

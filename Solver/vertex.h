@@ -2,6 +2,7 @@
 #define VERTEX_H
 #include "Python.h"
 
+#define PRIME ((unsigned int)0x7fffffff)
 #define BLOCKSIZE 1000
 
 typedef struct support_s {
@@ -40,7 +41,7 @@ typedef struct reservoir_s {
 
 typedef struct filter_list_s {
   int size;
-  support_t filter[0] __attribute__ ((aligned(16)));
+  support_t filter[0];
 } filter_list_t;
 
 typedef struct matrix_s {

@@ -1,8 +1,11 @@
 #CFLAGS = -O2 -g
 CFLAGS = -O3 -march=i686 -mcpu=i686 -I/usr/local/include/python2.2 -I/usr/include/python2.2
 
-solvermodule.so: solver.o mmx.o vertex.o
-	gcc -shared -o solvermodule.so solver.o mmx.o vertex.o
+#solvermodule.so: solver.o mmx.o vertex.o
+#	gcc -shared -o solvermodule.so solver.o mmx.o vertex.o
+
+solvermodule.so: solver.o no_mmx.o vertex.o
+	gcc -shared -o solvermodule.so solver.o no_mmx.o vertex.o
 
 test: test0 test1 test2 test3
 
@@ -23,6 +26,8 @@ solver.o: solver.c
 vertex.o: vertex.c vertex.h
 
 mmx.o: mmx.c vertex.h
+
+no_mmx: no_mmx.c vertex.h
 
 clean:
 	-rm *.o *.so test0 test1 test2 test3

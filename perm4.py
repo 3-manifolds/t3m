@@ -1,5 +1,5 @@
 #$Id$
-from operator import *
+from operator import inv
 
 def _make_opp_dict():
       def swap(t): return (t[1], t[0])
@@ -56,11 +56,6 @@ class Perm4:
   def __repr__(self):
      return(str(self.tuple()))
 
-#    return ('< 0->' + str(self.dict[0]) + 
-#            ', 1->' + str(self.dict[1]) + 
-#            ', 2->' + str(self.dict[2]) + 
-#            ', 3->' + str(self.dict[3]) + ' >')
-
   # P((i, ... ,j)) returns the image tuple (P(i), ... , P(j))
   def __call__(self, a_tuple):
     image = []
@@ -99,3 +94,7 @@ class Perm4:
     for i in range(4):
      the_tuple = the_tuple + (self.dict[i],)
     return the_tuple
+
+
+
+

@@ -3,8 +3,6 @@
 #include <errno.h>
 #include "vertex.h"
 
-#define PRIME ((unsigned int)0x7fffffff)
-
 static void print_vertices(vertex_stack_t *stack, int dimension);
 static PyObject *build_vertex_list(vertex_stack_t *stack, int dimension);
 static void no_memory(void);
@@ -361,6 +359,34 @@ void *destroy_filter_list(filter_list_t *filterlist){
     free(filterlist);
 };
 
+// A vector passes a filter test if its support does not contain the
+// support of a filter.  This function returns a non-zero value if
+// the vertex vector passes all the filter tests, or returns 0 as soon as
+// any test fails.  The non-zero value is not meaningful, being just
+// the support of the last filter intersected with the complement of
+// the support of the vector.
+
+int filter(vertex_t *v, filter_list_t *filter_list){
+  int size = filter_list->size;
+  support_t *filter = filter_list->filter;
+  register int CS0, CS1, CS2, CS3, result;
+
+  CS0=~(v->support.supp[0]);
+  CS1=~(v->support.supp[1]); 
+  CS2=~(v->support.supp[2]);
+  CS3=~(v->support.supp[3]);
+
+  while (size--) {
+    result = 0;
+    result |= (filter->supp[0] & CS0); 
+    result |= (filter->supp[1] & CS1); 
+    result |= (filter->supp[2] & CS2); 
+    result |= (filter->supp[3] & CS3);
+    if (result == 0) break;
+    ++filter;
+  }
+  return result;
+}
 
 PyObject *find_vertices(matrix_t *matrix, filter_list_t *filter_list){
   PyObject *result;

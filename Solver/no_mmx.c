@@ -4,51 +4,24 @@
 
 void ax_plus_by_mod_p(int size, int a, int b, int *x, int *y){
 
-  if (size != 0)
-    asm volatile ("
-        movd  %%eax, %%mm0     ;
-        movd  %%edx, %%mm1     ;
-        movl $0x80000001, %%esi;
-        modploop:
-        movd  %%mm0, %%eax     ;
-        mull  (%%ebx)          ;
-        shll  $0x1, %%eax      ;
-        adcl  %%edx,%%edx      ;
-        shrl  $0x1, %%eax      ;
-        addl  %%edx, %%eax     ;
-        movl  %%eax, %%edx     ;
-        addl  %%esi, %%edx     ;
-        cmpl  %%edx, %%eax     ;
-        cmova %%edx, %%eax     ;
-        addl  $0x4, %%ebx      ;
-        movd  %%eax, %%mm2     ;
-        movd  %%mm1, %%eax     ;
-        mull  (%%ecx)          ;
-        shll  $0x1, %%eax      ;
-        adcl  %%edx, %%edx     ;
-        shrl  $0x1, %%eax      ;
-        addl  %%edx, %%eax     ;
-        movl  %%eax, %%edx     ;
-        addl  %%esi, %%edx     ;
-        cmpl  %%edx, %%eax     ;
-        cmova %%edx, %%eax     ;
-        movd  %%mm2, %%edx     ;
-        addl  %%edx, %%eax     ;
-        movl  %%eax, %%edx     ;
-        addl  %%esi, %%edx     ;
-        cmpl  %%edx, %%eax     ;
-        cmova %%edx, %%eax     ;
-        movl  %%eax, (%%ecx)   ;
-        addl  $0x4, %%ecx      ;
-        decl  %%edi            ;
-        jnz    modploop        ;
-        emms ;"  
-	:
-	:"D"(size),"a"(a),"d"(b),"b"(x),"c"(y)
-	:"%esi"
-	);
-}
+  register int A = a, B = b;
+  register unsigned int S;
+  register int *X = x, *Y = y;
+  register long long prod;
 
+  while (size--) {
+    prod = ((long long)(*Y))*((long long)B);
+    S = (prod & 0x7fffffff) + (prod >> 31);
+    if (S >= (unsigned int)PRIME) S -= PRIME;
+    *Y = S;
+    prod = ((long long)(*X++))*((long long)A);
+    S = (prod & 0x7fffffff) + (prod >> 31);
+    if (S >= (unsigned int)PRIME) S -= PRIME;
+    S += *Y;
+    if (S >= (unsigned int)PRIME) S -= PRIME;
+    *Y++ = S;
+  }
+}
 
 // This returns a non-zero value if the value of any coordinate of
 // ax+by overflows a 32 bit word.  Note that the products ax and by
@@ -57,39 +30,16 @@ void ax_plus_by_mod_p(int size, int a, int b, int *x, int *y){
 
 int ax_plus_by(int size, int a, int b, int *x, int *y){
 
+  register int A = a, B = b;
+  register int *X = x, *Y = y;
+  register long long prod;
+
   int result = 0;
-  if (size != 0)
-    asm volatile ("
-        movd  %%eax, %%mm0     ;
-        movd  %%edx, %%mm1     ;
-        xor   %%esi, %%esi     ;
-        axpbyloop:
-        movd  %%mm0, %%eax     ;
-        imull  (%%ebx)         ;
-        addl  $0x4, %%ebx      ;
-        movd  %%eax, %%mm2     ;
-        movd  %%edx, %%mm3     ;
-        movd  %%mm1, %%eax     ;
-        imull  (%%ecx)         ;
-        movd  %%edx, %%mm4     ;
-        movd  %%mm2, %%edx     ;
-        addl  %%edx, %%eax     ;
-        movl  %%eax, (%%ecx)   ;
-        movd  %%mm3, %%eax     ;
-        movd  %%mm4, %%edx     ;
-        adcl  %%edx, %%eax     ;
-        incl  %%eax            ;
-        shrl  $1, %%eax        ;
-        or    %%eax, %%esi     ;
-        addl  $0x4, %%ecx      ;
-        decl  %%edi            ;
-        jnz    axpbyloop       ;
-        movl  %%esi, %%eax     ;
-        emms ;"
-	:"=a"(result)
-	:"D"(size),"a"(a),"d"(b),"b"(x),"c"(y)
-	:"%esi"
-	);
+  while (size--) {
+    prod = ((long long)(*Y))*((long long)B) + ((long long)(*X++))*((long long)A);
+    *Y++ = (prod & 0xffffffff);
+    result |= (((prod >> 32) + 1) >> 1);
+  }
   return result;
 }
 
@@ -135,50 +85,10 @@ int dot(int size, int *x, int *y, int *dotprod){
   return result;
 }
 
-// filter_list must be 16-byte aligned !!!!!
-// Otherwise you get a segfault.
-
-#if 0
-
-int filter(vertex_t *v, filter_list_t *filter_list){
-  int result = 0, size = filter_list->size;
-  support_t *filter = filter_list->filter;
-  support_t *support = &(v->support);
-
-  asm volatile ("
-        movq    (%%esi), %%mm0     ;
-        movq    0x8(%%esi), %%mm1  ;
-        filterloop:		   
-        movq    (%%ebx), %%mm2     ;
-        movq    0x8(%%ebx), %%mm3  ;
-        movq    %%mm0, %%mm4       ;
-        movq    %%mm1, %%mm5       ;
-        addl    $0x10, %%ebx       ;
-        pandn   %%mm2, %%mm4       ;
-        pandn   %%mm3, %%mm5       ;
-        por     %%mm5, %%mm4       ;
-        movd    %%mm4, %%eax       ;
-        punpckhdq %%mm5, %%mm4     ;
-        movd    %%mm4, %%esi       ;
-        orl     %%esi, %%eax       ;
-        test    %%eax, %%eax       ;
-        je      done               ;
-        decl    %%edi              ;
-        jnz     filterloop         ;
-        done:
-        emms;"
-	:"=a"(result)
-	:"D"(size),"S"(support),"b"(filter)
-	);
-  return result;
-}
-
-#endif
-
 // WARNING: This may write one int past the end of the array.  Allow extra
 // space in your matrix.
-// To avoid unpredicatble branching, we overwrite each column with a 0
-// in the support vector.  
+// To avoid unpredictable branching, we just overwrite each of the columns that
+// corresponds to a 0 in the support vector.  
 
 int extract_matrix(matrix_t *in, int rows, support_t *support, matrix_t *out) {
   int columns;
