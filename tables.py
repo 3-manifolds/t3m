@@ -55,6 +55,7 @@ nonalternating_knot_ext = manifold_list(SnapPea.NonalternatingKnotExteriors)
 def get_mcomplex(name):
     return Mcomplex_from_data(SnapPea.get_manifold(name))
 
+
 __all__ = ('closed_orientable',
            'five_tet_cusped',
            'six_tet_cusped_orientable',
