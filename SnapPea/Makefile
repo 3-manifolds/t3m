@@ -5,9 +5,6 @@ HEADERS = -Iheaders -Iunix_kit -I/usr/local/include/python$(PYTHON_VERSION)  -I/
 
 all: KernelObjects/BuildDate SnapPeaC.so
 
-install: SnapPeaC.so
-	cp SnapPeaC.so ..
-
 KernelObjects/BuildDate:	code/*.c headers/*.h unix_kit/*
 	mkdir -p KernelObjects
 	cd KernelObjects ;\

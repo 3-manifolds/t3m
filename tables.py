@@ -1,5 +1,5 @@
 import gzip, struct, os, types, re
-from SnapPea import *
+from SnapPea.SnapPea import *
 from mcomplex import *
 
 link_directory = os.path.join('Tables','Links') 

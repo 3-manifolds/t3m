@@ -4,7 +4,22 @@ from Numeric import *
 from LinearAlgebra import *
 import sys
 
-# Incidence dictionaries for quads, triangles and octagons
+# NOTE the functions in this module only make sense for closed
+# manifolds.  It will need to be rewritten to accomodate spun normal
+# surfaces.  In particular, build_weights tries to compute the
+# triangle weights from the quad weights.  We could set them to
+# infinity, I suppose, near a torus cusp.
+#
+# For spun surfaces we will want to compute the boundary slope.  We
+# should perhaps decide what the degenerate form of the boundary slope
+# is for a spherical vertex link. (0/0?) For a higher genus vertex
+# link the object that corresonds to a boundary slope is an element of
+# H^1 of the link.  This is the class represented by the shift
+# cocycle.  The boundary class generates its kernel, in the genus 1 case.
+# Now that I mention it, I think that the shift cocycle is the natural
+# object to compute in all cases.
+
+#Incidence dictionaries for quads, triangles and octagons
 
 MeetsQuad = {E01:array((1,1,0)), E02:array((1,0,1)), E21:array((0,1,1)),
              E32:array((1,1,0)), E31:array((1,0,1)), E03:array((0,1,1))}
@@ -17,6 +32,10 @@ MeetsOct =  {E01:array((1,1,2)), E02:array((1,2,1)), E21:array((2,1,1)),
 
 QuadWeights = (array((1,0,0)), array((0,1,0)), array((0,0,1)) )
 
+WeightVector = array([1,1,1])
+
+TypeVector = array([0,1,2]) 
+
 # The format for a coefficient vector is [T0, T1, T2, T3, Q0, Q1, Q2, ...}
 
 NonInteger = 'Error'
@@ -24,11 +43,13 @@ NonInteger = 'Error'
 class Surface:
   Count = 0
 
-  def __init__(self, manifold, coeff, quad):
+  def __init__(self, manifold, quadvector):
+    Q = not_equal(quadvector, 0).resize((len(manifold),3))
+    A = array(quadvector).resize((len(manifold),3))
     Surface.Count = Surface.Count + 1
     self.Manifold = manifold
-    self.Coefficients = array(coeff)
-    self.Quadtypes = array(quad)
+    self.Coefficients = matrixmultiply(A,WeightVector)
+    self.Quadtypes = matrixmultiply(Q,TypeVector)
     self.Weights = zeros( 7*len(manifold) )
     self.build_weights()
     
@@ -75,13 +96,15 @@ class Surface:
             c -= self.Coefficients[j]
         constants.append(c)
 
-    # Too bad I can't do LinearAlgebra over Z.
-    self.A =  array(eqns)
-    self.b =  array(constants)
-    x,r,rk,s = linear_least_squares(array(eqns), array(constants))
-# Subtract off as many vertex links as possible.
-# This trick only works with a 1-vertex manifold.
-#    x = x - min(x)
+    # AAAAARRRRRGGGHHHHHH.
+    A =  array(eqns)
+    b =  array(constants)
+    tA = transpose(A)
+    U = matrixmultiply(tA,A)
+    v = matrixmultiply(tA,b)
+    x = solve_linear_equations(U,v)
+
+    # Subtract off as many vertex links as possible.
     for vertex in self.Manifold.Vertices:
       m = min(multiply(vertex.IncidenceVector, x ))
       x -= m*vertex.IncidenceVector 
@@ -183,8 +206,8 @@ class Surface:
 
     return (bounds_subcomplex, double_bounds_subcomplex, thick_or_thin)
 
-  # a surface is an edge linking torus iff all edge weights are 2 except one which
-  # is zero.  Returns pair (is linking torus, edge it links aroud)
+  # A surface is an edge linking torus iff all edge weights are 2 except one which
+  # is zero.  Returns pair (is linking torus, edge it links around).
   
   def is_edge_linking_torus(self):
     zeroes = 0
@@ -245,4 +268,5 @@ class Surface:
     for i in range(len(self.EdgeWeights)):
       out.write("  Edge %s has weight %d\n" 
                   % (self.Manifold.Edges[i], self.EdgeWeights[i]))
+
 
