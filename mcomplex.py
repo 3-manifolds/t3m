@@ -10,6 +10,7 @@ from simplex import *
 from tetrahedron import Tetrahedron
 from corner import Corner
 from arrow import Arrow
+from face import Face
 from edge import Edge
 from vertex import Vertex
 from surface import Surface, SpunSurface, ClosedSurface
@@ -62,9 +63,11 @@ class Mcomplex:
    def __init__(self, tetrahedron_list):
      self.Tetrahedra = tetrahedron_list
      self.Edges                = []
+     self.Faces                = []
      self.Vertices             = []
      self.NormalSurfaces       = []
      self.AlmostNormalSurfaces = []
+     Mcomplex.Count += 1
      self.build()
 
    def __del__(self):
@@ -73,6 +76,9 @@ class Mcomplex:
      Mcomplex.Count = Mcomplex.Count - 1
 
    def erase(self):
+     for face in self.Faces:
+       face.erase()
+     self.Faces = []
      for edge in self.Edges:
        edge.erase()
      self.Edges = []
@@ -106,6 +112,7 @@ class Mcomplex:
    def build(self):
      for i in range(len(self.Tetrahedra)):
        self.Tetrahedra[i].Index = i
+     self.build_face_classes()
      self.build_edge_classes()
      self.build_vertex_classes()
      self.build_one_skeleton()
@@ -114,24 +121,35 @@ class Mcomplex:
    def rebuild(self):
      for tet in self.Tetrahedra:
        tet.clear_Class()
+     for face in self.Faces:
+       face.erase()
      for edge in self.Edges:
        edge.erase()
      for vertex in self.Vertices:
        vertex.erase()
+     self.Faces = []
      self.Edges = []
      self.Vertices = []
      self.build()
 
    def add_tet(self, tet):
      self.Tetrahedra.append(tet)
-     tet.Owner = self
 
-# Remove the edge and vertex classes of a tetrahedron.  This should
-# destroy the edges and vertices that meet the tetrahedron.  A call
-# to build_edge_classes or build_vertex_classes will then rebuild the
-# neighborhood without having to rebuild the whole manifold.
-#
+# Remove the face, edge and vertex classes of a tetrahedron.  This
+# should destroy the faces, edges and vertices that meet the
+# tetrahedron.  A call to build_face_classes, build_edge_classes or
+# build_vertex_classes will then rebuild the neighborhood without
+# having to rebuild the whole manifold.  #
+
    def clear_tet(self,tet):
+     for two_subsimplex in TwoSubsimplices:
+       face = tet.Class[two_subsimplex]
+       if not face == None:
+         face.erase()
+       try:
+         self.Faces.remove(face)
+       except ValueError:
+         pass
      for one_subsimplex in OneSubsimplices:
        edge = tet.Class[one_subsimplex]
        if not edge == None:
@@ -296,6 +314,26 @@ class Mcomplex:
      for vertex in self.Vertices:
        if vertex.IntOrBdry == '':
          vertex.IntOrBdry = 'int'  
+
+#Construct the faces.
+   def build_face_classes(self):
+     for tet in self.Tetrahedra:
+       for two_subsimplex in TwoSubsimplices:
+         if ( tet.Class[two_subsimplex] == None ):
+           newFace = Face()
+           self.Faces.append(newFace)
+           newFace.Corners.append(Corner(tet,two_subsimplex))
+           tet.Class[two_subsimplex] = newFace
+           othertet = tet.Neighbor[two_subsimplex]
+           if othertet:
+             newFace.IntOrBdry = 'int'
+             othersubsimplex = tet.Gluing[two_subsimplex].image(two_subsimplex)
+             newFace.Corners.append(Corner(othertet, othersubsimplex))
+             othertet.Class[othersubsimplex] = newFace
+           else:
+             newFace.IntOrBdry = 'bdry'
+     for i in range(len(self.Faces)):
+       self.Faces[i].Index = i
 
 #
 # Orientation

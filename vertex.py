@@ -26,7 +26,7 @@ class Vertex:
    def __repr__(self):
      if self.Index > -1:
        return ('v' + str(self.Index) 
-            + ' (' + self.IntOrBdry + ')')
+            + ' (' + self.IntOrBdry + ') ')
      else:
        return '< floating vertex' + str(id(self)) + ' >'
 
