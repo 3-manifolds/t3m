@@ -7,6 +7,7 @@
 #   the Free Software Foundation.  See the file GPL.txt for details.
 
 from mcomplex import *
+from arrow import eArrow
 import os, sys, re
 
 # Nathan's code for importing and exporting snappea files.
@@ -180,10 +181,36 @@ def write_geo_file(mcomplex, file_name):
         i = i + 1
         out("\n")
 
+# writing a file for Matveev's program Spine
+
+def write_spine_file(mcomplex, file_name):
+    out = open(file_name, "w").write
+    for edge in mcomplex.Edges:
+        n = edge.valence()
+        A = edge.get_arrow()
+        tets, global_faces, local_faces, back_local_faces = [], [], [], []
+        for i in range(n):
+            tets.append(A.Tetrahedron.Index + 1)
+            global_faces.append(A.Tetrahedron.Class[A.Face].Index + 1)
+            local_faces.append(A.Face)
+            back_local_faces.append(comp(A.head()))
+            A.next()
+
+            
+        signs = [1 if (tets[i], local_faces[i]) < (tets[(i + 1) % n], back_local_faces[(i + 1)%n]) else -1 for i in range(n)]
+        ans= repr([signs[i]*global_faces[i] for i in range(n)])[1:-1].replace(",", "")
+        out(ans + "\n")
+
+    
+        
+            
+        
+
 
 
 __all__  = ('read_SnapPea_file',
             'write_SnapPea_file',
             'read_geo_file',
-            'write_geo_file'
+            'write_geo_file',
+            'write_spine_file',
             )

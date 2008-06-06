@@ -16,7 +16,7 @@ from vertex import Vertex
 from surface import Surface, SpunSurface, ClosedSurface, ClosedSurfaceInCusped
 from FXrays import find_Xrays
 import Numeric
-import whrandom
+import random
 import os, sys
 VERBOSE = 0
 
@@ -590,7 +590,7 @@ class Mcomplex:
        a = Arrow(edge.Corners[0].Subsimplex,
                  LeftFace[edge.Corners[0].Subsimplex],
                  edge.Corners[0].Tetrahedron)
-       if whrandom.randint(0,1) == 0:
+       if random.randint(0,1) == 0:
          a.reverse()
      if edge_or_arrow.__class__ == Arrow:
        a = edge_or_arrow
@@ -664,7 +664,7 @@ class Mcomplex:
          tries.append(edge)
      if len(tries) == 0:
        return 0
-     return self.four_to_four(tries[whrandom.randint(0,len(tries) - 1)])
+     return self.four_to_four(tries[random.randint(0,len(tries) - 1)])
 
    JIGGLE_LIMIT = 6
 
@@ -685,8 +685,8 @@ class Mcomplex:
 
    def blowup(self,n):
      for i in range(n):
-       rand_tet = self[ whrandom.randint(0, len(self) - 1) ]
-       rand_face = TwoSubsimplices[whrandom.randint(0,3)]
+       rand_tet = self[ random.randint(0, len(self) - 1) ]
+       rand_face = TwoSubsimplices[random.randint(0,3)]
        self.two_to_three(rand_face, rand_tet)
        self.eliminate_valence_two()       
      return len(self)
@@ -696,9 +696,9 @@ class Mcomplex:
 #
    def blowup2(self,n):
      for i in range(n):
-       rand_edge = self.Edges[ whrandom.randint(0, len(self.Edges) - 1) ]
-       j = whrandom.randint(0, len(rand_edge.Corners) - 1)
-       k = whrandom.randint(0, len(rand_edge.Corners) - 1 - j)
+       rand_edge = self.Edges[ random.randint(0, len(self.Edges) - 1) ]
+       j = random.randint(0, len(rand_edge.Corners) - 1)
+       k = random.randint(0, len(rand_edge.Corners) - 1 - j)
        one_subsimplex = rand_edge.Corners[j].Subsimplex
        two_subsimplex = LeftFace[one_subsimplex]
        a = Arrow(one_subsimplex, two_subsimplex, 
