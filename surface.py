@@ -7,6 +7,7 @@
 #   the Free Software Foundation.  See the file GPL.txt for details.
 
 from simplex import *
+from tetrahedron import Tetrahedron
 from Numeric import *
 # array, transpose, matrixmultiply, dot, not_equal
 from LinearAlgebra import generalized_inverse
@@ -303,6 +304,9 @@ class ClosedSurface(Surface):
     D = {V0: 0, V1:1, V2:2, V3:3, E03:4, E12:4, E13:5, E02:5, E23:6, E01:6}
     return self.Weights[7*tet_number + D[subsimplex] ]
 
+  def has_quad(self, tet_number):
+      return max([self.get_weight(tet_number, e) for e in [E01, E02, E03]]) > 0
+
   def get_edge_weight(self, edge):
     j = edge.Index
     return self.EdgeWeights[j]
@@ -416,6 +420,24 @@ class ClosedSurface(Surface):
     for i in range(len(self.EdgeWeights)):
       out.write("  Edge %s has weight %d\n" 
                   % (manifold.Edges[i], self.EdgeWeights[i]))
+
+  def casson_split(self, manifold):
+      """
+
+      Returns the "Casson Split" of the manifold along the normal
+      surface.  That is, splits the manifold open along the surface
+      and replaces the "combinatorial I-bundles" by I-bundles over
+      disks.  Of course, doing so may change the topology of
+      complementary manifold.
+      
+      """
+      M  = manifold
+      have_quads = [self.has_quad(i) for i in range(len(M))]
+      new_tets = {}
+      for i in have_quads:
+          new_tets[i] = Tetrahedron()
+      for i in have_quads:
+          T = new_tets[i]
 
 #-----------------end class ClosedSurface---------------------------------------
 
