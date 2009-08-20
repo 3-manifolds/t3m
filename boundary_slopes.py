@@ -1,6 +1,6 @@
 import SnapPea, t3m, sys
 from FXrays import find_Xrays
-from LinearAlgebra import generalized_inverse
+from numpy.oldnumeric.linear_algebra import generalized_inverse
 from surface import DisjointQuad
 from types import *
 import random

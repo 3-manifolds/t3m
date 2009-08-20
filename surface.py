@@ -8,9 +8,9 @@
 
 from simplex import *
 from tetrahedron import Tetrahedron
-from Numeric import *
+from numpy.oldnumeric import *
 # array, transpose, matrixmultiply, dot, not_equal
-from LinearAlgebra import generalized_inverse
+from numpy.oldnumeric.linear_algebra import generalized_inverse
 import sys
 
 # NOTE (1) The functions in this module only make sense for closed

@@ -15,7 +15,7 @@ from edge import Edge
 from vertex import Vertex
 from surface import Surface, SpunSurface, ClosedSurface, ClosedSurfaceInCusped
 from FXrays import find_Xrays
-import Numeric
+import numpy.oldnumeric as Numeric
 import random
 import os, sys
 VERBOSE = 0

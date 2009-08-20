@@ -1,5 +1,7 @@
+## Automatically adapted for numpy.oldnumeric Aug 19, 2009 by ipython
+
 from normal import *
-import LinearAlgebra
+import numpy.oldnumeric.linear_algebra as LinearAlgebra
 
 def qtlist(surface): 
    result = []   
