@@ -99,11 +99,11 @@ class Surface:
 
   def __init__(self, manifold, quadvector):
     self.Size = len(manifold)
-    Q = not_equal(quadvector, 0).resize((self.Size,3))
-    A = array(quadvector).resize((self.Size,3))
+    Q = not_equal(quadvector, 0).reshape((self.Size,3))
+    A = array(quadvector).reshape((self.Size,3))
     self.Quadvector = quadvector
-    self.Coefficients = matrixmultiply(A,WeightVector)
-    self.Quadtypes = matrixmultiply(Q,TypeVector)
+    self.Coefficients = dot(A,WeightVector)
+    self.Quadtypes = dot(Q,TypeVector)
     Surface.Count += 1
 
     
@@ -258,7 +258,7 @@ class ClosedSurface(Surface):
     A =  array(eqns)
     b =  array(constants)
     Ainv = generalized_inverse(A)
-    x = matrixmultiply(Ainv, b)
+    x = dot(Ainv, b)
 
     # Subtract off as many vertex links as possible.
     for vertex in manifold.Vertices:
@@ -281,7 +281,7 @@ class ClosedSurface(Surface):
       else:
         self.Weights[7*i + 4: 7*i + 7] = QuadWeights[self.Quadtypes[i]]
 
-    self.EdgeWeights = matrixmultiply(array(edge_matrix),self.Weights)
+    self.EdgeWeights = dot(array(edge_matrix),self.Weights)
 
 
   def find_euler_characteristic(self, manifold):

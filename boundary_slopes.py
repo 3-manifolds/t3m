@@ -171,7 +171,7 @@ class OneCuspedManifold(t3m.Mcomplex):
         A = t3m.Numeric.array(matrix)
         b = t3m.Numeric.array([2]*n + [1]*n + [0,0])
         Ai = generalized_inverse(A)
-        self.Anglevector = t3m.Numeric.matrixmultiply(Ai, b)
+        self.Anglevector = t3m.Numeric.dot(Ai, b)
         
     def find_normal_surfaces(self, modp=0):
         t3m.Mcomplex.find_normal_surfaces(self, modp)
