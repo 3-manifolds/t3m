@@ -68,27 +68,27 @@ def Mcomplex_from_data(fake_tets):
 #-----------End function Mcomplex_from_data--------------------
 
 # Exports an Mcomplex in SnapPea 2.0 format.
-# ASSUMES THAT THE MANIFOLD IS ORIENTABLE, CLOSED, AND THAT THE LINK OF
+# ASSUMES THAT THE MANIFOLD IS ORIENTABLE AND THAT THE LINK OF
 # ANY VERTEX HAS GENUS AT MOST ONE.
 
 def write_SnapPea_file(mcomplex, file_name ):
     out = open(file_name, "w").write
-    out("% Triangulation\n\n" + file_name + "\nnot_attempted\noriented_manifold\nCS_unknown\n\n")
+    out("% Triangulation\n\n" + file_name + "\nnot_attempted 0.0\nunknown_orientability\nCS_unknown\n\n")
     # Make sure everything is in order
     mcomplex.rebuild()
 
-    torus_cusps = 0
+    torus_cusps = []
     for vertex in mcomplex.Vertices:
         g = vertex.link_genus()
         if g > 1:
             raise ValueError, "Link of vertex has genus more than 1."
         if g == 1:
-            torus_cusps = torus_cusps + 1
+            torus_cusps.append(vertex)
 
     # All torus cusps are unfilled
     
-    out("%d 0" % torus_cusps)
-    for i in range(torus_cusps):
+    out("%d 0" % len(torus_cusps))
+    for i in torus_cusps:
         out( "   torus   0.000000000000   0.000000000000\n" )
 
     out("\n")
@@ -108,8 +108,9 @@ def write_SnapPea_file(mcomplex, file_name ):
 
         out("\n")
         for vert in ZeroSubsimplices:
-            if tet.Class[vert].link_genus() == 1:
-                out("0 ")
+            vertex = tet.Class[vert]
+            if vertex.link_genus() == 1:
+                out("%d " % torus_cusps.index(vertex))
             else:
                 out("-1 ")
         out("\n")
