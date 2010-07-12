@@ -112,7 +112,7 @@ def convert_quads_SnapPea_to_t3m(eqn):
 class OneCuspedManifold(t3m.Mcomplex):
     Count = 0
     
-    def __init__(self, triangulation):
+    def __init__(self, triangulation, do_one_cusped_test=True):
         if triangulation.__class__ == SnapPea.Triangulation:
             manifold = triangulation
         else:
@@ -120,7 +120,7 @@ class OneCuspedManifold(t3m.Mcomplex):
         
         if not manifold.get_triangulation_is_orientable():
             raise ValueError, "Manifold must be orientable"
-        if manifold.get_num_cusps() != 1:
+        if do_one_cusped_test and manifold.get_num_cusps() != 1:
             raise ValueError, "Manifold does not have one cusp"
 
         tets = t3m.build_tets_from_SnapPea(manifold, 0)
@@ -214,6 +214,27 @@ class OneCuspedManifold(t3m.Mcomplex):
                                         new_eqns, modp)
         for coeff_vector in coeff_list:
             self.ClosedSurfaces.append(t3m.ClosedSurfaceInCusped(self, coeff_vector))
+
+    def find_filled_normal_surfaces(self, modp=0):
+        self.NormalSurfaces = []
+        self.build_matrix()
+
+        cusp_eqns = []
+        M = self.SnapPeaTriangulation
+        n = M.get_num_cusps()
+        for i in range(1,n):
+            cusp_eqns += quad_equation_from_gluing(convert_quads_SnapPea_to_t3m(M.get_cusp_equations()[i][0]))
+
+        new_eqns = self.QuadMatrix.matrix.tolist() + cusp_eqns
+        coeff_list = find_Xrays(self.QuadMatrix.rows + n-1,
+                                        self.QuadMatrix.columns,
+                                        new_eqns, modp)
+        for coeff_vector in coeff_list:
+            S = t3m.SpunSurface(self, coeff_vector)
+            S.add_shifts()
+            S.add_boundary_slope(self.CuspEquations)
+            self.NormalSurfaces.append(S)
+
 
     def  all_closed_surfaces_edge_linking(self):
         for surface in self.ClosedSurfaces:

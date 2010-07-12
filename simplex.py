@@ -63,7 +63,10 @@ SubsimplexName = ('N', 'V0', 'V1', 'E01', 'V2', 'E02', 'E12', 'F3',
 #  \  |  /  
 #   \ | /   
 #    \|/    
-#     0   
+#     0
+#
+# This is the same as SnapPea's default right_handed orientation.
+#
 # Each edge has a default orientation.  The edge directions are chosen
 # so that vertex 0 is a source and so that a simplex looks like this
 # when viewed from any edge:
