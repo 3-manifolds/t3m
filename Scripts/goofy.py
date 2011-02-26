@@ -1,4 +1,4 @@
-#$Id$
+#$Id: goofy.py,v 1.1.1.1 2002/08/19 16:24:45 t3m Exp $
 # Nathan's code for importing and exporting snappea files.
 from mcomplex import *
 import re

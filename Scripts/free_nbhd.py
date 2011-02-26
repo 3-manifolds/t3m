@@ -1,4 +1,4 @@
-#$Id$
+#$Id: free_nbhd.py,v 1.1.1.1 2002/08/19 16:24:45 t3m Exp $
 from mcomplex import *
 import sys
 
