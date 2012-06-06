@@ -6,18 +6,24 @@
 #   GNU General Public License, version 2 or later, as published by
 #   the Free Software Foundation.  See the file GPL.txt for details.
 
-from simplex import *
-from tetrahedron import Tetrahedron
-from corner import Corner
-from arrow import Arrow
-from face import Face
-from edge import Edge
-from vertex import Vertex
-from surface import Surface, SpunSurface, ClosedSurface, ClosedSurfaceInCusped
+from .simplex import *
+from .tetrahedron import Tetrahedron
+from .corner import Corner
+from .arrow import Arrow
+from .face import Face
+from .edge import Edge
+from .vertex import Vertex
+from .surface import Surface, SpunSurface, ClosedSurface, ClosedSurfaceInCusped
 from FXrays import find_Xrays
+from . import files
 import numpy.oldnumeric as Numeric
 import random
 import os, sys
+try:
+     import snappy
+except ImportError:
+     snappy = None
+
 VERBOSE = 0
 
 # Globals needed for normal surfaces:
@@ -83,7 +89,17 @@ class Mcomplex:
 
    Count = 0
 
-   def __init__(self, tetrahedron_list):
+   def __init__(self, tetrahedron_list=None):
+     if tetrahedron_list is None:
+          tetrahedron_list = []
+     if isinstance(tetrahedron_list, str) and snappy == None:
+          tetrahedron_list = files.read_SnapPea_file(file_name=tetrahedron_list, return_raw_tets=True)
+     if snappy:
+          if isinstance(tetrahedron_list, str):
+               tetrahedron_list = snappy.Triangulation(tetrahedron_list)
+          if isinstance(tetrahedron_list, (snappy.Triangulation, snappy.Manifold)):
+               tetrahedron_list = files.read_SnapPea_file(data=tetrahedron_list._to_string(), return_raw_tets=True)
+        
      self.Tetrahedra = tetrahedron_list
      self.Edges                = []
      self.Faces                = []

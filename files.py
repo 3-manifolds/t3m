@@ -19,8 +19,9 @@ import os, sys, re
 #      2    5    1   34 
 #   3120 0321 0132 0132
 
-def read_SnapPea_file(file_name):
-    data = open(file_name).read()
+def read_SnapPea_file(file_name=None, data = None, return_raw_tets=False):
+    if data is None: 
+        data = open(file_name).read()
     count = 0
 
     neighbors_match = "^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$"
@@ -42,7 +43,8 @@ def read_SnapPea_file(file_name):
                 perms.append(perm)
             fake_tets.append( (neighbors, perms) )
             curr_poss = m.end(8)
-    return Mcomplex_from_data(fake_tets)
+    
+    return Mcomplex_from_data(fake_tets, return_raw_tets)
 
 #------------End function SnapPea to Mcomplex--------------------
 
@@ -56,14 +58,14 @@ def read_SnapPea_file(file_name):
 # NOTE: there _was_ a function of the same name in
 # tables.py; __all__ is set up so this one doesn't export.
 
-def Mcomplex_from_data(fake_tets):
+def Mcomplex_from_data(fake_tets, return_raw_tets=False):
     num_tets = len(fake_tets)
     tets = map(lambda x: Tetrahedron(), range(num_tets))
     for i in range(num_tets):
         neighbors, perms = fake_tets[i]
         for k in range(4):
             tets[i].attach(TwoSubsimplices[k], tets[neighbors[k]], perms[k])
-    return Mcomplex(tets)
+    return tets if return_raw_tets else Mcomplex(tets)
 
 #-----------End function Mcomplex_from_data--------------------
 
