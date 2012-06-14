@@ -6,7 +6,7 @@
 #   GNU General Public License, version 2 or later, as published by
 #   the Free Software Foundation.  See the file GPL.txt for details.
 
-from mcomplex import *
+from .mcomplex import *
 from arrow import eArrow
 import os, sys, re
 
