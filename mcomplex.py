@@ -93,7 +93,7 @@ class Mcomplex:
      if tetrahedron_list is None:
           tetrahedron_list = []
      if isinstance(tetrahedron_list, str) and snappy == None:
-          tetrahedron_list = files.read_SnapPea_file(file_name=tetrahedron_list)
+          tetrahedron_list = tets_from_data(files.read_SnapPea_file(file_name=tetrahedron_list))
      if snappy:
           if isinstance(tetrahedron_list, str):
                tetrahedron_list = snappy.Triangulation(tetrahedron_list)
