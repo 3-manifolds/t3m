@@ -93,12 +93,12 @@ class Mcomplex:
      if tetrahedron_list is None:
           tetrahedron_list = []
      if isinstance(tetrahedron_list, str) and snappy == None:
-          tetrahedron_list = files.read_SnapPea_file(file_name=tetrahedron_list, return_raw_tets=True)
+          tetrahedron_list = files.read_SnapPea_file(file_name=tetrahedron_list)
      if snappy:
           if isinstance(tetrahedron_list, str):
                tetrahedron_list = snappy.Triangulation(tetrahedron_list)
           if isinstance(tetrahedron_list, (snappy.Triangulation, snappy.Manifold)):
-               tetrahedron_list = files.read_SnapPea_file(data=tetrahedron_list._to_string(), return_raw_tets=True)
+               tetrahedron_list = tets_from_data(files.read_SnapPea_file(data=tetrahedron_list._to_string()))
         
      self.Tetrahedra = tetrahedron_list
      self.Edges                = []
@@ -278,7 +278,7 @@ class Mcomplex:
            while 1:
              # Walk around the edge.
              if sanity_check > 6*len(self.Tetrahedra):
-               raise Insanity,'Bad gluing data: could not construct edge link.'
+               raise Insanity('Bad gluing data: could not construct edge link.')
              # Record the corners and edge classes as we go.
              newEdge.Corners.append(Corner(a.Tetrahedron, a.Edge))
              a.Tetrahedron.Class[a.Edge] = newEdge
@@ -497,8 +497,8 @@ class Mcomplex:
      self.delete_tet(b.Tetrahedron)
      self.build_edge_classes()
      if VERBOSE:
-       print '2->3'
-       print self.EdgeValences
+       print('2->3')
+       print(self.EdgeValences)
 #     return self
      return 1
 
@@ -527,8 +527,8 @@ class Mcomplex:
        self.delete_tet(corner.Tetrahedron)
      self.build_edge_classes()
      if VERBOSE:
-       print '3->2'
-       print self.EdgeValences
+       print('3->2')
+       print(self.EdgeValences)
      return 1
 
 # Flatten the star of an edge of valence 2 to eliminate two tetrahedra.
@@ -555,8 +555,8 @@ class Mcomplex:
        self.delete_tet(corner.Tetrahedron)
      self.build_edge_classes()
      if VERBOSE:
-       print '2->0'
-       print self.EdgeValences
+       print('2->0')
+       print(self.EdgeValences)
      return 1
 
 # Blow up two adjacent faces into a pair of tetrahedra.
@@ -588,8 +588,8 @@ class Mcomplex:
      self.clear_tet(arrow2.Tetrahedron)
      self.build_edge_classes()
      if VERBOSE:
-       print '0->2'
-       print self.EdgeValences
+       print('0->2')
+       print(self.EdgeValences)
      return 1 
 
 # Replace an edge of valence 4 by another diagonal of the octahedron
@@ -634,8 +634,8 @@ class Mcomplex:
        self.delete_tet(corner.Tetrahedron)
      self.build_edge_classes()
      if VERBOSE:
-       print '4->4'
-       print self.EdgeValences
+       print('4->4')
+       print(self.EdgeValences)
      return 1
 
    def eliminate_valence_two(self):
@@ -737,7 +737,7 @@ class Mcomplex:
 #
    def bdry_neighbor(self, arrow):
      if arrow.next() != None:
-        raise Insanity, "That boundary face is not on the boundary!"
+        raise Insanity("That boundary face is not on the boundary!")
      edge = arrow.Tetrahedron.Class[arrow.Edge]
      if edge.LeftBdryArrow == arrow:
         return edge.RightBdryArrow
@@ -904,7 +904,6 @@ class Mcomplex:
       if not edge.distinct():  return None
       valence = edge.valence()
       if len(top_arrows) != valence or len(bottom_arrows) != valence:
-         print "there"
          return None
 
       #  Attach other_complex to manifold replace star of arrow
@@ -974,4 +973,33 @@ class Mcomplex:
       bottom_arrows.append(Arrow(comp(E03), F0, bottom_tets[i]))
 
       return (top_arrows, bottom_arrows)
-      
+
+   def save(self, filename, format="snappy"):
+     if format == "snappy":
+          files.write_SnapPea_file(self, filename)
+     if format == "geo":
+          files.write_geo_file(self, filename)
+     if format == "spine":
+          files.write_spine_file(self, filename)
+
+# Takes a list where the ith element represents the glueing data
+# for the ith tetraherda:
+#
+#  ( [Neighbors], [Glueings] )
+#
+# and creates the corresponding Mcomplex
+
+def tets_from_data(fake_tets):
+    num_tets = len(fake_tets)
+    tets = map(lambda x: Tetrahedron(), range(num_tets))
+    for i in range(num_tets):
+        neighbors, perms = fake_tets[i]
+        for k in range(4):
+            tets[i].attach(TwoSubsimplices[k], tets[neighbors[k]], perms[k])
+    return tets
+
+def read_geo_file(filename):
+     return Mcomplex(tets_from_data(files.read_geo_file(filename)))
+
+def read_SnapPea_file(filename):
+     return Mcomplex(tets_from_data(files.read_SnapPea_file(filename)))

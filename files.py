@@ -6,8 +6,9 @@
 #   GNU General Public License, version 2 or later, as published by
 #   the Free Software Foundation.  See the file GPL.txt for details.
 
-from .mcomplex import *
-from arrow import eArrow
+from .arrow import eArrow
+from .simplex import *
+from .tetrahedron import Tetrahedron
 import os, sys, re
 
 # Nathan's code for importing and exporting snappea files.
@@ -19,7 +20,7 @@ import os, sys, re
 #      2    5    1   34 
 #   3120 0321 0132 0132
 
-def read_SnapPea_file(file_name=None, data = None, return_raw_tets=False):
+def read_SnapPea_file(file_name=None, data = None):
     if data is None: 
         data = open(file_name).read()
     count = 0
@@ -44,30 +45,10 @@ def read_SnapPea_file(file_name=None, data = None, return_raw_tets=False):
             fake_tets.append( (neighbors, perms) )
             curr_poss = m.end(8)
     
-    return Mcomplex_from_data(fake_tets, return_raw_tets)
+    return fake_tets
 
 #------------End function SnapPea to Mcomplex--------------------
 
-# Takes a list where the ith element represents the glueing data
-# for the ith tetraherda:
-#
-#  ( [Neighbors], [Glueings] )
-#
-# and creates the corresponding Mcomplex
-
-# NOTE: there _was_ a function of the same name in
-# tables.py; __all__ is set up so this one doesn't export.
-
-def Mcomplex_from_data(fake_tets, return_raw_tets=False):
-    num_tets = len(fake_tets)
-    tets = map(lambda x: Tetrahedron(), range(num_tets))
-    for i in range(num_tets):
-        neighbors, perms = fake_tets[i]
-        for k in range(4):
-            tets[i].attach(TwoSubsimplices[k], tets[neighbors[k]], perms[k])
-    return tets if return_raw_tets else Mcomplex(tets)
-
-#-----------End function Mcomplex_from_data--------------------
 
 # Exports an Mcomplex in SnapPea 2.0 format.
 # ASSUMES THAT THE MANIFOLD IS ORIENTABLE AND THAT THE LINK OF
